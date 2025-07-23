@@ -1,0 +1,3898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+icTtNI3L7eVI6EyKRj3PPJu2G7S/5FjLJpNE6T"
+    crossorigin="anonymous"
+  />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>keklick - C2 Hunting and reporting platform</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/timeline-chart@latest/dist/timeline-chart.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  
+  <div class="navbar">
+    <div class="left">
+        <div class="logo">
+        <img src="/static/img/keklick.png" alt="keklick logo" height="44" style="vertical-align: middle; margin-right: 5px;">
+      </div>
+      <div class="logo">keklick</div>
+      <button id="reportButton">
+        <img src="/static/img/dw.svg" alt="Download" width="22" height="22" style="margin-right: 5px;">
+        <span>Report</span>
+      </button>
+      <button id="night-mode-button" title="Night Mode">
+        <img src="/static/img/nm1.svg" alt="Night Mode" width="22" height="22">
+      </button>
+    </div>
+    <div class="center">
+      <div class="search-box">
+        <select id="searchType">
+          <option value="auto">Auto Detect</option>
+          <option value="ip">IP Address</option>
+          <option value="domain">Domain</option>
+        </select>
+        <select id="resultLimit">
+          <option value="20">20 Results</option>
+          <option value="50" selected>50 Results</option>
+          <option value="100">100 Results</option>
+          <option value="150">150 Results</option>
+          <option value="all">All (May take longer)</option>
+        </select>
+        <input type="text" id="ipAddressInput" placeholder="IP address or domain...">
+        <button id="searchButton">
+          <img src="/static/img/sc1.svg" alt="Search" width="23" height="23">
+        </button>
+      </div>
+    </div>
+    <div class="right">
+<div class="zoom-buttons">
+  <button id="zoom-in" title="Zoom In">+</button>
+  <button id="zoom-out" title="Zoom Out">-</button>
+  <span id="zoom-level">100%</span>
+</div>
+      <button id="shared-button" title="Share">
+        <img src="/static/img/sh.svg" alt="Share" width="22" height="22">
+      </button>
+      <button id="fullscreen-button" title="Full Screen">
+        <img src="/static/img/fs2.svg" alt="Full Screen" width="22" height="22">
+      </button>
+      <button id="download-button" title="Download Diagram">
+        <img src="/static/img/dw2.svg" alt="Download Diagram" width="22" height="22">
+      </button>
+      <div class="options">
+        <button id="options-button">Options</button>
+        <div class="options-content" id="options-dropdown">
+          <a id="select-status-code">Select Status Code</a>
+          <a id="export-csv">Export Domain CSV</a>
+          <a id="show-threat-intel">Threat Intelligence</a>
+          <a id="show-ssl-analysis">SSL Certificate Analysis</a>
+          <a id="show-dns-records">DNS Records</a>
+          <a id="show-whois">WHOIS Information</a>
+          <a id="show-timeline">Timeline</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div id="container" class="active-panel"></div>
+    <div id="threat-intel-panel" class="analysis-panel">
+      <h2>Threat Intelligence Information</h2>
+      <div class="panel-content">
+        <div class="intel-section">
+          <h3>AbuseIPDB</h3>
+          <div id="abuseipdb-results" class="api-results"></div>
+        </div>
+        <div class="intel-section">
+          <h3>OTX AlienVault</h3>
+          <div id="otx-results" class="api-results"></div>
+        </div>
+      </div>
+      <button id="close-threat-intel" class="close-panel-button">Close</button>
+    </div>
+    <div id="ssl-analysis-panel" class="analysis-panel">
+      <h2>SSL Certificate Analysis</h2>
+      <div class="panel-content">
+        <div id="ssl-details" class="ssl-results"></div>
+        <div id="ssl-san-domains" class="ssl-results">
+          <h3>Alternative Domain Names (SAN)</h3>
+          <ul id="san-list"></ul>
+        </div>
+      </div>
+      <button id="close-ssl-analysis" class="close-panel-button">Close</button>
+    </div>
+    <div id="dns-records-panel" class="analysis-panel">
+      <h2>DNS Records</h2>
+      <div class="panel-content">
+        <div class="dns-section">
+          <h3>A Records</h3>
+          <div id="a-records" class="dns-results"></div>
+        </div>
+        <div class="dns-section">
+          <h3>MX Records</h3>
+          <div id="mx-records" class="dns-results"></div>
+        </div>
+        <div class="dns-section">
+          <h3>NS Records</h3>
+          <div id="ns-records" class="dns-results"></div>
+        </div>
+        <div class="dns-section">
+          <h3>TXT Records</h3>
+          <div id="txt-records" class="dns-results"></div>
+        </div>
+        <div class="dns-section">
+          <h3>Other Records</h3>
+          <div id="other-records" class="dns-results"></div>
+        </div>
+      </div>
+      <button id="close-dns-records" class="close-panel-button">Close</button>
+    </div>
+    <div id="whois-panel" class="analysis-panel">
+      <h2>WHOIS Information</h2>
+      <div class="panel-content">
+        <div id="whois-details" class="whois-results"></div>
+      </div>
+      <button id="close-whois" class="close-panel-button">Close</button>
+    </div>
+    <div id="timeline-panel" class="analysis-panel">
+      <h2>Timeline</h2>
+      <div class="panel-content">
+        <div id="timeline-container"></div>
+      </div>
+      <button id="close-timeline" class="close-panel-button">Close</button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+  <div id="loading">loading...</div>
+
+  <div id="tooltip" class="tooltip" style="display: none;"></div>
+
+  <div id="noteModal" class="modal">
+    <div class="modal-content">
+      <h3>Add label or note</h3> 
+      <div style="margin-bottom: 10px;">
+        <label for="noteInput">Note:</label>
+        <input
+          type="text"
+          id="noteInput"
+          maxlength="100"
+          placeholder="add note..."
+        />
+        <small id="noteCount">0 / 100</small>
+      </div>
+      <button id="confirmNote" class="confirm-button">Confirm</button>
+      <button id="cancelNote" class="cancel-button">Cancel</button>
+    </div>
+  </div>
+
+  <div id="statusCodeModal" class="modal">
+    <div class="modal-content">
+      <h3>Select Status Code</h3>
+      <div style="margin-bottom: 10px;" id="statusCodeOptions">
+      </div>
+      <button id="applyStatusCode" class="confirm-button">Apply</button>
+      <button id="cancelStatusCode" class="cancel-button">Cancel</button>
+    </div>
+  </div>
+
+    </div>
+  </div>
+
+  <script>
+    
+document.addEventListener('DOMContentLoaded', function() {
+  
+  const navbar = document.querySelector('.navbar');
+  navbar.addEventListener('wheel', function(e) {
+    
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }, { passive: false });
+  
+  
+  navbar.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+});
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let zoomLevel = 1;
+    let currentIP = null;
+    let currentDomain = null;
+    let currentTargetType = null;
+    let originalData = null;
+    let filteredStatusCode = null;
+    
+    const container = d3.select("#container");
+    const bgImagePath = "{{ url_for('static', filename='img/bg.png') }}";
+    const svg = container.append("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .style("background-color", "#292929")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("preserveAspectRatio", "xMidYMid meet");
+      function createGrid(isDayMode = false) {
+  
+  svg.selectAll(".grid-line").remove();
+  
+  const gridSize = 20;
+  const gridColor = isDayMode ? "#cccccc" : "#2c2c2c";
+  
+  
+  for (let y = 0; y <= height; y += gridSize) {
+    svg.append("line")
+      .attr("class", "grid-line")
+      .attr("x1", 0)
+      .attr("y1", y)
+      .attr("x2", width)
+      .attr("y2", y)
+      .attr("stroke", gridColor)
+      .attr("stroke-width", 0.5)
+      .attr("shape-rendering", "crispEdges");
+  }
+  
+  
+  for (let x = 0; x <= width; x += gridSize) {
+    svg.append("line")
+      .attr("class", "grid-line")
+      .attr("x1", x)
+      .attr("y1", 0)
+      .attr("x2", x)
+      .attr("y2", height)
+      .attr("stroke", gridColor)
+      .attr("stroke-width", 0.5)
+      .attr("shape-rendering", "crispEdges");
+  }
+}
+
+createGrid();
+
+for (let x = 0; x <= width; x += 20) {
+  svg.append("line")
+    .attr("x1", x)
+    .attr("y1", 0)
+    .attr("x2", x)
+    .attr("y2", height)
+    .attr("stroke", "#2c2c2c")
+    .attr("stroke-width", 1);
+}
+
+for (let y = 0; y <= height; y += 20) {
+  svg.append("line")
+    .attr("x1", 0)
+    .attr("y1", y)
+    .attr("x2", width)
+    .attr("y2", y)
+    .attr("stroke", "#2c2c2c")
+    .attr("stroke-width", 1);
+}
+
+    const graphGroup = svg.append("g").attr("class", "graph-group");
+
+    const predefinedStatusCodes = ["200", "301", "302", "303", "404", "429", "500", "503"];
+
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      svg.attr('width', width).attr('height', height);
+      if (simulation) {
+        simulation.force("center", d3.forceCenter(width / 2, height / 2));
+        simulation.alpha(0.05).restart();
+      }
+    });
+
+    function isValidIP(ip) {
+      const octets = ip.split('.');
+      if (octets.length !== 4) return false;
+      for (let i = 0; i < 4; i++) {
+        const octet = octets[i];
+        if (!/^\d+$/.test(octet)) return false;
+        const num = parseInt(octet, 10);
+        if (num < 0 || num > 255) return false;
+      }
+      return true;
+    }
+    
+    function isValidDomain(domain) {
+      const regex = /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+      return regex.test(domain);
+    }
+
+    function displayMessage(message, isError = false) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.innerText = message;
+      messageDiv.style.color = isError ? 'red' : 'green';
+      messageDiv.style.display = 'block';
+      if (message) {
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 3000);
+      }
+    }
+    
+function parseDomainData(domainString) {
+  const regex = /^(.*?) \[(.*?)\] \[(.*?)\](?: \[(.*?)\])?(?: \[(.*?)\])?(?: \[(.*?)\])?$/;
+  const match = domainString.match(regex);
+  if (match) {
+    return {
+      url: match[1].trim(),
+      statusCode: match[2].trim(),
+      statusMessage: match[3].trim(),
+      technologies: match[4] ? match[4].trim() : 'undefined',
+      title: match[5] ? match[5].trim() : '',
+      location: match[6] ? match[6].trim() : ''
+    };
+  } else {
+    console.error("Domain verisi ayrıştırılamadı:", domainString);
+    return {
+      url: domainString,
+      statusCode: 'undefined',
+      statusMessage: 'undefined',
+      technologies: 'undefined',
+      title: '',
+      location: ''
+    };
+  }
+}
+
+function parseIPData(ipString) {
+  const regex = /^(.*?) \[(.*?)\] \[(.*?)\](?: \[(.*?)\])?(?: \[(.*?)\])?(?: \[(.*?)\])?$/;
+  const match = ipString.match(regex);
+  if (match) {
+    return {
+      ip: match[1].trim(),
+      statusCode: match[2].trim(),
+      statusMessage: match[3].trim(),
+      technologies: match[4] ? match[4].trim() : 'undefined',
+      title: match[5] ? match[5].trim() : '',
+      location: match[6] ? match[6].trim() : ''
+    };
+  } else {
+    console.error("IP verisi ayrıştırılamadı:", ipString);
+    return {
+      ip: ipString,
+      statusCode: 'undefined',
+      statusMessage: 'undefined',
+      technologies: 'undefined',
+      title: '',
+      location: ''
+    };
+  }
+}
+
+    let simulation;
+    let nodes = [];
+    let links = [];
+
+    function createGraph() {
+      nodes = [];
+      links = [];
+      drawGraph();
+    }
+
+    function drawGraph() {
+      graphGroup.selectAll("*").remove();
+
+      graphGroup.append("g").attr("class", "links");
+      graphGroup.append("g").attr("class", "nodes");
+
+      simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(d => d.id).distance(200))
+        .force("charge", d3.forceManyBody().strength(-300).distanceMax(500))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collide", d3.forceCollide(d => {
+          const nodeWidth = getNodeWidth(d);
+          const nodeHeight = d.height || 100;
+          return Math.max(nodeWidth, nodeHeight) / 2 + 20;
+        }))
+        .alphaDecay(0.005)
+        .alphaMin(0.001)
+        .on("tick", ticked);
+
+
+const zoom = d3.zoom()
+  .scaleExtent([0.005, 5])
+  .on("zoom", event => {
+
+    graphGroup.attr("transform", event.transform);
+    zoomLevel = event.transform.k;
+    d3.select("#zoom-level").text(`${Math.round(zoomLevel * 100)}%`);
+  });
+
+
+svg.call(zoom)
+  .on("wheel", function(event) {
+
+    if (event.target.closest('svg')) {
+      event.preventDefault();
+    }
+  }, { passive: false });
+
+      d3.select("#zoom-in").on("click", () => {
+        zoom.scaleBy(svg.transition().duration(500), 1.2);
+      });
+
+      d3.select("#zoom-out").on("click", () => {
+        zoom.scaleBy(svg.transition().duration(500), 0.8);
+      });
+    }
+
+    function updateGraph() {
+      const link = graphGroup.select(".links")
+        .selectAll("line")
+        .data(links);
+
+      link.enter().append("line")
+        .attr("stroke-width", 2)
+        .attr("stroke", "#8912f3");
+
+      link.exit().remove();
+
+      const node = graphGroup.select(".nodes")
+        .selectAll("g")
+        .data(nodes, d => d.id);
+
+      const nodeEnter = node.enter().append("g")
+        .call(d3.drag()
+          .on("start", dragStarted)
+          .on("drag", dragged)
+          .on("end", dragEnded));
+
+      nodeEnter.each(function(d) {
+        const nodeGroup = d3.select(this);
+        
+        if (d.type === "main") {
+          nodeGroup.classed(d.searchType === 'ip' ? 'main-ip' : 'main-domain', true);
+        } else {
+          nodeGroup.classed(d.type === 'ip' ? 'node-ip' : 'node-domain', true);
+        }
+        
+        if (d.type === "main") {
+if (d.type === "main") {
+  nodeGroup.append("circle")
+    .attr("r", 90) 
+    .attr("fill", d.searchType === 'ip' ? "#2980b9" : "#27ae60")
+    .attr("stroke", d.searchType === 'ip' ? "#3498db" : "#2ecc71")
+    .attr("stroke-width", 2);
+
+  nodeGroup.append("text")
+    .attr("text-anchor", "middle")
+    .style("fill", "#ecf0f1")
+    .style("font-size", "12px")
+    .style("pointer-events", "none")
+    .html(getMainNodeContent(d));
+
+  addSVGButtonsToMainNode(d);
+}
+        } else {
+          const nodeGroup = d3.select(this);
+
+nodeGroup.append("rect")
+  .attr("width", getNodeWidth(d))
+  .attr("height", 200) 
+  .attr("fill", d.type === 'ip' ? "#34495e" : "#2c3e50")
+  .attr("stroke", "#9c12f3")
+  .attr("stroke-width", 2)
+  .attr("rx", 10)
+  .attr("ry", 10);
+
+const fo = nodeGroup.append("foreignObject")
+  .attr("x", 10)
+  .attr("y", 10)
+  .attr("width", getNodeWidth(d) - 20)
+  .attr("height", 150); 
+
+          const div = fo.append("xhtml:div")
+            .attr("class", "node-text")
+            .style("color", "#ecf0f1")
+            .style("font-size", "12px")
+            .style("font-family", "Arial")
+            .style("line-height", "1.2")
+            .style("word-wrap", "break-word")
+            .html(getNodeContent(d));
+
+          setTimeout(() => {
+            const divNode = div.node();
+            const newHeight = divNode.scrollHeight + 20;
+            d.height = newHeight;
+
+            const buttonHeight = 32;
+            nodeGroup.select("rect").attr("height", newHeight + buttonHeight);
+            fo.attr("height", newHeight - 20);
+
+const buttonYPosition = 160; 
+
+nodeGroup.append("image")
+  .attr("xlink:href", "/static/img/copy-files.svg")
+  .attr("class", "copy-icon")
+  .attr("width", 22)
+  .attr("height", 22)
+  .attr("x", getNodeWidth(d) - 32)
+  .attr("y", buttonYPosition)
+  .style("cursor", "pointer")
+  .on("click", (event) => {
+    copyToClipboard(d.label);
+    showTooltip("copied!", event.pageX, event.pageY);
+  });
+
+            nodeGroup.append("image")
+              .attr("xlink:href", "/static/img/virustotal-icon.svg")
+              .attr("class", "analyze-icon")
+              .attr("width", 20)
+              .attr("height", 20)
+              .attr("x", getNodeWidth(d) - 64)
+              .attr("y", buttonYPosition)
+              .style("cursor", "pointer")
+              .on("click", () => {
+                let analyzeUrl;
+                if (d.type === 'domain') {
+                  const domain = d.label.replace(/^https?:\/\//, '');
+                  analyzeUrl = "https://www.virustotal.com/gui/domain/" + encodeURIComponent(domain);
+                } else {
+                  analyzeUrl = "https://www.virustotal.com/gui/ip-address/" + encodeURIComponent(d.label);
+                }
+                window.open(analyzeUrl, '_blank');
+              });
+nodeGroup.append("image")
+  .attr("xlink:href", "/static/img/FOFA.jpg")
+  .attr("class", "fofa-icon")
+  .attr("width", 20)
+  .attr("height", 20)
+  .attr("x", getNodeWidth(d) - 160)
+  .attr("y", buttonYPosition)
+  .style("cursor", "pointer")
+  .on("click", () => {
+    let queryString;
+    if (d.type === 'domain') {
+      const cleanDomain = d.label.replace(/^https?:\/\//, '');
+      queryString = `domain="${cleanDomain}"`;
+    } else {
+
+      queryString = `ip="${d.label}"`;
+    }
+
+    const base64Query = btoa(queryString);
+
+    const fofaUrl = `https://en.fofa.info/result?qbase64=${encodeURIComponent(base64Query)}`;
+    window.open(fofaUrl, '_blank');
+  });
+  nodeGroup.append("image")
+  .attr("xlink:href", "/static/img/url.svg")
+  .attr("class", "urlscan-icon")
+  .attr("width", 20)
+  .attr("height", 20)
+  .attr("x", getNodeWidth(d) - 192) 
+  .attr("y", buttonYPosition)
+  .style("cursor", "pointer")
+  .on("click", () => {
+    let urlscanUrl;
+    if (d.type === 'domain') {
+      
+      const cleanDomain = d.label.replace(/^https?:\/\//, '');
+      urlscanUrl = `https://urlscan.io/search/#domain:${encodeURIComponent(cleanDomain)}`;
+    } else {
+      urlscanUrl = `https://urlscan.io/search/#ip:${encodeURIComponent(d.label)}`;
+    }
+    window.open(urlscanUrl, '_blank');
+  });
+nodeGroup.append("image")
+  .attr("xlink:href", "/static/img/shodan.png") 
+  .attr("class", "shodan-icon")
+  .attr("width", 35)
+  .attr("height", 25)
+  .attr("x", getNodeWidth(d) - 234) 
+  .attr("y", buttonYPosition)
+  .style("cursor", "pointer")
+  .on("click", () => {
+    let shodanUrl;
+    if (d.type === 'domain') {
+      const cleanDomain = d.label.replace(/^https?:\/\//, '');
+      shodanUrl = `https://www.shodan.io/search?query=hostname:${encodeURIComponent(cleanDomain)}`;
+    } else {
+      shodanUrl = `https://www.shodan.io/host/${encodeURIComponent(d.label)}`;
+    }
+    window.open(shodanUrl, '_blank');
+  });
+
+nodeGroup.append("image")
+  .attr("xlink:href", "/static/img/censys.png") 
+  .attr("class", "censys-icon")
+  .attr("width", 45)
+  .attr("height", 25)
+  .attr("x", getNodeWidth(d) - 285) 
+  .attr("y", buttonYPosition)
+  .style("cursor", "pointer")
+  .on("click", () => {
+    let censysUrl;
+    if (d.type === 'domain') {
+
+      const cleanDomain = d.label.replace(/^https?:\/\//, '');
+      censysUrl = `https://search.censys.io/search?resource=hosts&sort=RELEVANCE&per_page=25&virtual_hosts=EXCLUDE&q=${encodeURIComponent(cleanDomain)}`;
+    } else {
+
+      censysUrl = `https://search.censys.io/hosts/${encodeURIComponent(d.label)}`;
+    }
+    window.open(censysUrl, '_blank');
+  });
+            nodeGroup.append("image")
+              .attr("xlink:href", "/static/img/shield.png")
+              .attr("class", "threat-intel-icon")
+              .attr("width", 20)
+              .attr("height", 20)
+              .attr("x", getNodeWidth(d) - 96)
+              .attr("y", buttonYPosition)
+              .style("cursor", "pointer")
+              .on("click", () => {
+                loadThreatIntelligence(d.label, d.type);
+                showPanel('threat-intel-panel');
+              });
+
+            nodeGroup.append("image")
+              .attr("xlink:href", "/static/img/pencil.svg")
+              .attr("class", "edit-icon")
+              .attr("width", 20)
+              .attr("height", 20)
+              .attr("x", getNodeWidth(d) - 128)
+              .attr("y", buttonYPosition)
+              .style("cursor", "pointer")
+              .on("click", () => {
+                openNoteModal(d);
+              });
+          }, 0);
+        }
+      });
+
+      node.exit().remove();
+
+      simulation.nodes(nodes);
+      simulation.force("link").links(links);
+      simulation.alpha(0.005).restart();
+    }
+
+    function ticked() {
+      graphGroup.selectAll(".links line")
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+graphGroup.selectAll(".nodes g")
+  .attr("transform", d => {
+    if (d.type === "main") {
+      return `translate(${d.x},${d.y})`;
+    } else {
+      const nodeWidth = getNodeWidth(d);
+      const nodeHeight = 200; 
+      return `translate(${d.x - nodeWidth / 2},${d.y - nodeHeight / 2})`;
+    }
+  });
+    }
+
+    function dragStarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.004).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragEnded(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      
+      if (d.type === "main") {
+        d.fx = d.x;
+        d.fy = d.y;
+      } else {
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+    }
+
+    function getNodeWidth(d) {
+      return 300;
+    }
+function getNodeContent(d) {
+  let content;
+  
+  if (d.type === "domain") {
+    content = `
+      <div class="node-content">
+        <div class="node-header"><strong>Domain:</strong> ${d.label}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Status Code:</strong> ${d.statusCode}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Status Message:</strong> ${d.statusMessage}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Technologies:</strong> ${d.technologies}</div>
+    `;
+    
+
+    if (d.title) {
+      content += `<div class="node-divider"></div>
+                  <div class="node-item"><strong>Title:</strong> ${d.title}</div>`;
+    }
+    if (d.location) {
+      content += `<div class="node-divider"></div>
+                  <div class="node-item"><strong>Location:</strong> ${d.location}</div>`;
+    }
+    
+
+    if (d.notes && d.notes.length > 0) {
+      content += `<div class="node-divider"></div>`;
+      d.notes.forEach(note => {
+        content += `<div class="note">Note: ${note}</div>`;
+      });
+    }
+    
+    content += `</div>`;
+  } else if (d.type === "ip") {
+    content = `
+      <div class="node-content">
+        <div class="node-header"><strong>IP Address:</strong> ${d.label}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Status Code:</strong> ${d.statusCode}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Status Message:</strong> ${d.statusMessage}</div>
+        <div class="node-divider"></div>
+        <div class="node-item"><strong>Technologies:</strong> ${d.technologies}</div>
+    `;
+    
+    if (d.title) {
+      content += `<div class="node-divider"></div>
+                  <div class="node-item"><strong>Title:</strong> ${d.title}</div>`;
+    }
+    if (d.location) {
+      content += `<div class="node-divider"></div>
+                  <div class="node-item"><strong>Location:</strong> ${d.location}</div>`;
+    }
+    
+
+    if (d.notes && d.notes.length > 0) {
+      content += `<div class="node-divider"></div>`;
+      d.notes.forEach(note => {
+        content += `<div class="note">Note: ${note}</div>`;
+      });
+    }
+    
+    content += `</div>`;
+  }
+  
+  return content;
+}
+
+function getMainNodeContent(d) {
+  const nodeType = d.searchType === 'ip' ? 'Main IP' : 'Main Domain';
+  
+  let content = `
+    <tspan x="0" dy="-20">${nodeType}</tspan>
+    <tspan x="0" dy="15" style="font-weight: bold; fill: black;">${d.label}</tspan>
+  `;
+  
+  if (d.asn_info && d.searchType === 'ip') {
+    content += `<tspan x="0" dy="15">ASN: ${d.asn_info}</tspan>`;
+  }
+  
+  if (d.notes && d.notes.length > 0) {
+    d.notes.forEach(note => {
+      content += `<tspan x="0" dy="15">Note: ${note}</tspan>`;
+    });
+  }
+  return content;
+}
+
+    function addSVGButtonsToMainNode(d) {
+        const nodeGroup = graphGroup.selectAll(".nodes g").filter(nd => nd.id === d.id);
+        const radius = 70; 
+        const buttonCount = 7; 
+        const buttonSize = 20; 
+          const buttons = [
+    {
+      href: "/static/img/copy-files.svg",
+      class: "copy-icon",
+      width: 22,
+      height: 22,
+      onClick: (event) => {
+        copyToClipboard(d.label);
+        showTooltip("copied!", event.pageX, event.pageY);
+      }
+    },
+    {
+      href: "/static/img/virustotal-icon.svg",
+      class: "analyze-icon",
+      width: 20,
+      height: 20,
+      onClick: () => {
+        let analyzeUrl;
+        if (d.searchType === 'domain') {
+          analyzeUrl = "https://www.virustotal.com/gui/domain/" + encodeURIComponent(d.label);
+        } else {
+          analyzeUrl = "https://www.virustotal.com/gui/ip-address/" + encodeURIComponent(d.label);
+        }
+        window.open(analyzeUrl, '_blank');
+      }
+    },
+    {
+      href: "/static/img/shield.png",
+      class: "threat-intel-icon",
+      width: 20,
+      height: 20,
+      onClick: () => {
+        loadThreatIntelligence(d.label, d.searchType);
+        showPanel('threat-intel-panel');
+      }
+    },
+    {
+      href: "/static/img/pencil.svg",
+      class: "edit-icon",
+      width: 20,
+      height: 20,
+      onClick: () => {
+        openNoteModal(d);
+      }
+    },
+    {
+      href: "/static/img/FOFA.jpg",
+      class: "fofa-icon",
+      width: 20,
+      height: 20,
+      onClick: () => {
+        let queryString;
+        if (d.searchType === 'domain') {
+          const cleanDomain = d.label.replace(/^https?:\/\//, '');
+          queryString = `domain="${cleanDomain}"`;
+        } else {
+          queryString = `ip="${d.label}"`;
+        }
+        const base64Query = btoa(queryString);
+        const fofaUrl = `https://en.fofa.info/result?qbase64=${encodeURIComponent(base64Query)}`;
+        window.open(fofaUrl, '_blank');
+      }
+    },
+    {
+      href: "/static/img/url.svg",
+      class: "urlscan-icon",
+      width: 20,
+      height: 20,
+      onClick: () => {
+        let urlscanUrl;
+        if (d.searchType === 'domain') {
+          const cleanDomain = d.label.replace(/^https?:\/\//, '');
+          urlscanUrl = `https://urlscan.io/search/#domain:${encodeURIComponent(cleanDomain)}`;
+        } else {
+          urlscanUrl = `https://urlscan.io/search/#ip:${encodeURIComponent(d.label)}`;
+        }
+        window.open(urlscanUrl, '_blank');
+      }
+    },
+    {
+      href: "/static/img/shodan.png",
+      class: "shodan-icon",
+      width: 25,
+      height: 25,
+      onClick: () => {
+        let shodanUrl;
+        if (d.searchType === 'domain') {
+          const cleanDomain = d.label.replace(/^https?:\/\//, '');
+          shodanUrl = `https://www.shodan.io/search?query=hostname:${encodeURIComponent(cleanDomain)}`;
+        } else {
+          shodanUrl = `https://www.shodan.io/host/${encodeURIComponent(d.label)}`;
+        }
+        window.open(shodanUrl, '_blank');
+      }
+    },
+    {
+      href: "/static/img/censys.png",
+      class: "censys-icon",
+      width: 30,
+      height: 25,
+      onClick: () => {
+        let censysUrl;
+        if (d.searchType === 'domain') {
+          const cleanDomain = d.label.replace(/^https?:\/\//, '');
+          censysUrl = `https://search.censys.io/search?resource=hosts&sort=RELEVANCE&per_page=25&virtual_hosts=EXCLUDE&q=${encodeURIComponent(cleanDomain)}`;
+        } else {
+          censysUrl = `https://search.censys.io/hosts/${encodeURIComponent(d.label)}`;
+        }
+        window.open(censysUrl, '_blank');
+      }
+    }
+  ];
+    buttons.forEach((button, index) => {
+    
+    const angle = -Math.PI/2 + (2 * Math.PI * index / buttons.length);
+    
+    
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+    
+    nodeGroup.append("image")
+      .attr("xlink:href", button.href)
+      .attr("class", button.class)
+      .attr("width", button.width)
+      .attr("height", button.height)
+      .attr("x", x - button.width/2) 
+      .attr("y", y - button.height/2) 
+      .style("cursor", "pointer")
+      .on("click", button.onClick);
+  });
+
+
+}
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+  }).catch(err => {
+  });
+}
+    function showTooltip(text, x, y) {
+      const tooltip = d3.select("#tooltip");
+      tooltip.style("left", (x + 10) + "px")
+        .style("top", (y - 20) + "px")
+        .style("display", "inline-block")
+        .html(text);
+ 
+
+      setTimeout(() => {
+        tooltip.style("display", "none");
+      }, 1000);
+    }
+
+    let currentEventSource = null;
+
+    d3.select("#searchButton").on("click", () => {
+      const target = document.getElementById("ipAddressInput").value.trim();
+      const searchType = document.getElementById("searchType").value;
+      const resultLimit = document.getElementById("resultLimit").value;
+      
+      if (!target) {
+        displayMessage("Please enter a target (IP or domain).", true);
+        return;
+      }
+
+      const isIP = isValidIP(target);
+      const isDomain = isValidDomain(target);
+      
+      if (searchType === 'ip' && !isIP) {
+        displayMessage("Please enter a valid IP address.", true);
+        return;
+      }
+      
+      if (searchType === 'domain' && !isDomain) {
+        displayMessage("Please enter a valid domain.", true);
+        return;
+      }
+      
+      if (searchType === 'auto' && !isIP && !isDomain) {
+        displayMessage("Please enter a valid IP address or domain.", true);
+        return;
+      }
+
+      let finalSearchType = searchType;
+      if (searchType === 'auto') {
+        finalSearchType = isIP ? 'ip' : 'domain';
+      }
+
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+        
+        displayMessage("Previous query stopped, starting new query...");
+        
+        setTimeout(() => {
+          startNewSearch(target, finalSearchType, isIP, resultLimit);
+        }, 500);
+      } else {
+        startNewSearch(target, finalSearchType, isIP, resultLimit);
+      }
+    });
+
+    function startNewSearch(target, finalSearchType, isIP, limit) {
+      displayMessage("");
+      document.getElementById('loading').style.display = 'block';
+
+      currentEventSource = new EventSource(`/search?target=${target}&type=${finalSearchType}&limit=${limit}`);
+      
+      originalData = { 
+        target: target, 
+        domains: [], 
+        ips: [], 
+        search_type: finalSearchType 
+      };
+      
+      currentIP = isIP ? target : null;
+      currentDomain = !isIP ? target : null;
+      currentTargetType = finalSearchType;
+      
+      nodes = [];
+      links = [];
+      createGraph();
+
+      hideAllPanels();
+      showPanel('container');
+
+      localStorage.removeItem('lastSearchedTarget');
+
+      currentEventSource.onmessage = function(event) {
+        document.getElementById('loading').style.display = 'none';
+        const data = JSON.parse(event.data);
+        
+        if (data.domain) {
+          originalData.domains.push(data.domain);
+          if (!originalData.asn_info && data.asn_info) {
+            originalData.asn_info = data.asn_info;
+            updateMainNodeASN(data.asn_info);
+          }
+          createGraphIncremental(data.domain, 'domain');
+        } else if (data.ip) {
+          originalData.ips.push(data.ip);
+          createGraphIncremental(data.ip, 'ip');
+        }
+        
+        saveDataToLocalStorage(target, originalData);
+        localStorage.setItem('lastSearchedTarget', target);
+        localStorage.setItem('lastSearchedType', finalSearchType);
+      };
+
+      currentEventSource.onerror = function(e) {
+        document.getElementById('loading').style.display = 'none';
+        displayMessage("An error occurred while retrieving data.", true);
+        
+        currentEventSource.close();
+        currentEventSource = null;
+      };
+      
+      currentEventSource.addEventListener('complete', function(e) {
+        currentEventSource.close();
+        currentEventSource = null;
+        displayMessage("Data retrieval completed.");
+      });
+    }
+
+    window.addEventListener('beforeunload', function() {
+      if (currentEventSource) {
+        currentEventSource.close();
+        currentEventSource = null;
+      }
+    });
+
+    function updateMainNodeASN(asnInfo) {
+      const mainNodeId = originalData.target;
+      const mainNode = nodes.find(node => node.id === mainNodeId);
+      if (mainNode) {
+        mainNode.asn_info = asnInfo;
+        graphGroup.selectAll(".nodes g")
+          .filter(d => d.id === mainNodeId)
+          .select("text")
+          .html(getMainNodeContent(mainNode));
+
+        if (!mainNode.buttonsAdded) {
+          addSVGButtonsToMainNode(mainNode);
+          mainNode.buttonsAdded = true;
+        }
+      }
+    }
+
+function createGraphIncremental(newItem, itemType) {
+  itemType = itemType || 'domain';
+  
+  let newNode;
+  
+  if (itemType === 'domain') {
+    const domainData = parseDomainData(newItem);
+    if (!domainData) return;
+
+    newNode = {
+      id: domainData.url + nodes.length,
+      label: domainData.url,
+      statusCode: domainData.statusCode,
+      statusMessage: domainData.statusMessage,
+      technologies: domainData.technologies,
+      title: domainData.title,         
+      location: domainData.location,   
+      type: "domain",
+      notes: []
+    };
+  } else if (itemType === 'ip') {
+    const ipData = parseIPData(newItem);
+    if (!ipData) return;
+
+    newNode = {
+      id: ipData.ip + nodes.length,
+      label: ipData.ip,
+      statusCode: ipData.statusCode,
+      statusMessage: ipData.statusMessage,
+      technologies: ipData.technologies,
+      title: ipData.title,             
+      location: ipData.location,       
+      type: "ip",
+      notes: []
+    };
+  }
+
+  
+  const mainNodeId = originalData.target;
+  const mainNode = nodes.find(node => node.id === mainNodeId);
+  
+  if (mainNode && mainNode.x && mainNode.y) {
+    newNode.x = mainNode.x + (Math.random() - 0.5) * 100;
+    newNode.y = mainNode.y + (Math.random() - 0.5) * 100;
+  }
+
+
+      nodes.push(newNode);
+      
+      links.push({
+        source: mainNodeId,
+        target: newNode.id
+      });
+
+      if (!nodes.find(node => node.id === mainNodeId)) {
+        const mainNode = {
+          id: mainNodeId,
+          label: mainNodeId,
+          type: "main",
+          notes: [],
+          searchType: originalData.search_type,
+          fx: width / 2,
+          fy: height / 2
+        };
+        nodes.push(mainNode);
+      }
+
+      updateGraph();
+      function stabilizeIfNeeded() {
+        addedNodeCount++;
+        
+        if (addedNodeCount >= NODE_COUNT_THRESHOLD) {
+          simulation.alphaTarget(0).alphaDecay(0.02);
+          
+          nodes.forEach(node => {
+            if (!node.fx && !node.fy) {
+              node.vx *= 0.7;
+              node.vy *= 0.7;
+            }
+          });
+        }
+      }
+    }
+    
+    let addedNodeCount = 0;
+    const NODE_COUNT_THRESHOLD = 10;
+
+    let currentNode = null;
+
+    function openNoteModal(nodeData) {
+      currentNode = nodeData;
+      document.getElementById('noteInput').value = "";
+      document.getElementById('noteCount').innerText = `0 / 100`;
+      document.getElementById('noteModal').style.display = 'block';
+    }
+
+    function closeNoteModal() {
+      document.getElementById('noteModal').style.display = 'none';
+      currentNode = null;
+    }
+
+    document.getElementById('cancelNote').addEventListener('click', () => {
+      closeNoteModal();
+    });
+
+    document.getElementById('confirmNote').addEventListener('click', () => {
+      const note = document.getElementById('noteInput').value.trim();
+      if (note && currentNode) {
+        if (!currentNode.notes) {
+          currentNode.notes = [];
+        }
+        currentNode.notes.push(note);
+        console.log("Eklenen Notlar:", currentNode.notes);
+        updateNode(currentNode);
+      }
+      closeNoteModal();
+    });
+
+    document.getElementById('noteInput').addEventListener('input', (e) => {
+      const length = e.target.value.length;
+      document.getElementById('noteCount').innerText = `${length} / 100`;
+    });
+
+function updateNode(nodeData) {
+  console.log("Güncellenen Node:", nodeData);
+
+  if (nodeData.type === "main") {
+    graphGroup.selectAll(".nodes g")
+      .filter(d => d.id === nodeData.id)
+      .select("text")
+      .html(getMainNodeContent(nodeData));
+  } else {
+    graphGroup.selectAll(".nodes g")
+      .filter(d => d.id === nodeData.id)
+      .select("foreignObject")
+      .select("div.node-text")
+      .html(getNodeContent(nodeData));
+
+    
+    
+    graphGroup.selectAll(".nodes g")
+      .filter(d => d.id === nodeData.id)
+      .select("foreignObject")
+      .each(function(d) {
+        const divNode = this.querySelector(".node-content");
+        if (divNode) {
+          
+          const maxHeight = 150;
+          d3.select(this).attr("height", maxHeight);
+        }
+      });
+  }
+
+  if (currentIP || currentDomain) {
+    updateLocalStorage(currentIP || currentDomain, nodeData);
+  }
+}
+    window.onclick = function(event) {
+      const modal = document.getElementById('noteModal');
+      if (event.target == modal) {
+        closeNoteModal();
+      }
+
+      const statusCodeModal = document.getElementById('statusCodeModal');
+      if (event.target == statusCodeModal) {
+        closeStatusCodeModal();
+      }
+
+      const sandboxUrlModal = document.getElementById('sandboxUrlModal');
+      if (event.target == sandboxUrlModal) {
+        document.getElementById('sandboxUrlModal').style.display = 'none';
+      }
+
+      const optionsDropdown = document.getElementById('options-dropdown');
+      const optionsButton = document.getElementById('options-button');
+      if (!optionsDropdown.contains(event.target) && event.target !== optionsButton) {
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      }
+    }
+
+    function saveDataToLocalStorage(target, data) {
+      const timestamp = new Date().getTime();
+      const storageData = {
+        timestamp: timestamp,
+        data: data
+      };
+      localStorage.setItem(`targetData_${target}`, JSON.stringify(storageData));
+    }
+    
+    function loadDataFromLocalStorage(target) {
+      const storageItem = localStorage.getItem(`targetData_${target}`);
+      if (!storageItem) return null;
+
+      try {
+        const parsedData = JSON.parse(storageItem);
+        const currentTime = new Date().getTime();
+        const oneHour = 3600 * 1000;
+
+        if ((currentTime - parsedData.timestamp) < oneHour) {
+          return parsedData.data;
+        } else {
+          localStorage.removeItem(`targetData_${target}`);
+          return null;
+        }
+      } catch (e) {
+        console.error("LocalStorage error:", e);
+        localStorage.removeItem(`targetData_${target}`);
+        return null;
+      }
+    }
+
+function updateLocalStorage(target, updatedNodeData) {
+  const storageItem = localStorage.getItem(`targetData_${target}`);
+  if (!storageItem) return;
+
+  try {
+    const parsedData = JSON.parse(storageItem);
+    if (updatedNodeData.type === "main") {
+      parsedData.data.asn_info = updatedNodeData.asn_info;
+      parsedData.data.main_notes = updatedNodeData.notes;
+    } else {
+      if (updatedNodeData.type === 'domain') {
+        const nodeIndex = parsedData.data.domains.findIndex(domain => domain.startsWith(updatedNodeData.label));
+        if (nodeIndex !== -1) {
+          const updatedDomainString = `${updatedNodeData.label} [${updatedNodeData.statusCode}] [${updatedNodeData.statusMessage}] [${updatedNodeData.technologies}] [${updatedNodeData.title || ''}] [${updatedNodeData.location || ''}]`;
+          parsedData.data.domains[nodeIndex] = updatedDomainString;
+        }
+      } else if (updatedNodeData.type === 'ip') {
+        const nodeIndex = parsedData.data.ips.findIndex(ip => ip.startsWith(updatedNodeData.label));
+        if (nodeIndex !== -1) {
+          const updatedIPString = `${updatedNodeData.label} [${updatedNodeData.statusCode}] [${updatedNodeData.statusMessage}] [${updatedNodeData.technologies}] [${updatedNodeData.title || ''}] [${updatedNodeData.location || ''}]`;
+          parsedData.data.ips[nodeIndex] = updatedIPString;
+        }
+      }
+    }
+    localStorage.setItem(`targetData_${target}`, JSON.stringify(parsedData));
+  } catch (e) {
+    console.error("LocalStorage verisi güncellenemedi:", e);
+  }
+}
+
+    function checkAndLoadCachedData() {
+      const lastTarget = localStorage.getItem('lastSearchedTarget');
+      const lastType = localStorage.getItem('lastSearchedType') || 'ip';
+      
+      if (lastTarget) {
+        const data = loadDataFromLocalStorage(lastTarget);
+        if (data) {
+          originalData = data;
+          filteredStatusCode = null;
+          createGraph();
+          
+          if (data.asn_info) {
+            updateMainNodeASN(data.asn_info);
+          }
+          
+          if (data.domains && data.domains.length > 0) {
+            data.domains.forEach(domain => {
+              createGraphIncremental(domain, 'domain');
+            });
+          }
+          
+          if (data.ips && data.ips.length > 0) {
+            data.ips.forEach(ip => {
+              createGraphIncremental(ip, 'ip');
+            });
+          }
+          
+          displayMessage(`Last searched target: ${lastTarget} (Loaded from cache.)`);
+          document.getElementById('ipAddressInput').value = lastTarget;
+          document.getElementById('searchType').value = lastType;
+          
+          if (lastType === 'ip') {
+            currentIP = lastTarget;
+            currentDomain = null;
+          } else {
+            currentIP = null;
+            currentDomain = lastTarget;
+          }
+          currentTargetType = lastType;
+        }
+      }
+    }
+
+    function hideAllPanels() {
+      document.querySelectorAll('.analysis-panel').forEach(panel => {
+        panel.style.display = 'none';
+      });
+      document.getElementById('container').classList.remove('active-panel');
+    }
+
+    function showPanel(panelId) {
+      hideAllPanels();
+      if (panelId === 'container') {
+        document.getElementById('container').classList.add('active-panel');
+      } else {
+        document.getElementById(panelId).style.display = 'block';
+      }
+    }
+
+    async function loadThreatIntelligence(target, type) {
+      displayMessage("Loading threat intelligence information...");
+      
+      const abuseResults = document.getElementById('abuseipdb-results');
+      const otxResults = document.getElementById('otx-results');
+      
+      abuseResults.innerHTML = type === 'ip' ? '<div class="loading-spinner"></div><p>Loading AbuseIPDB information...</p>' : '<p>AbuseIPDB is only available for IP addresses.</p>';
+      otxResults.innerHTML = '<div class="loading-spinner"></div><p>Loading OTX information...</p>';
+      
+      try {
+        const response = await fetch(`/api/threat_intel?target=${target}&type=${type}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`Threat intelligence error: ${data.error}`, true);
+          return;
+        }
+        
+
+        
+        if (type === 'ip' && data.abuseipdb && !data.abuseipdb.error) {
+          abuseResults.innerHTML = `
+            <table class="intel-table">
+              <tr><th>Confidence Score</th><td>${data.abuseipdb.abuse_score || 0}/100</td></tr>
+              <tr><th>Total Reports</th><td>${data.abuseipdb.total_reports || 0}</td></tr>
+              <tr><th>Last Reported</th><td>${data.abuseipdb.last_reported || 'No reports'}</td></tr>
+              <tr><th>Country</th><td>${data.abuseipdb.country || 'Unknown'} (${data.abuseipdb.country_code || 'N/A'})</td></tr>
+              <tr><th>ISP</th><td>${data.abuseipdb.isp || 'Unknown'}</td></tr>
+              <tr><th>Usage Type</th><td>${data.abuseipdb.usage_type || 'Unknown'}</td></tr>
+              <tr><th>Domain</th><td>${data.abuseipdb.domain || 'Unknown'}</td></tr>
+              <tr><th>Public IP</th><td>${data.abuseipdb.is_public ? 'Yes' : 'No'}</td></tr>
+            </table>
+          `;
+        } else if (type === 'ip') {
+          abuseResults.innerHTML = `<p>No AbuseIPDB information found${data.abuseipdb?.error ? ': ' + data.abuseipdb.error : ''}.</p>`;
+        }
+        
+        if (data.otx && !data.otx.error) {
+          let html = `
+            <table class="intel-table">
+              <tr><th>Pulse Count</th><td>${data.otx.pulse_count || 0}</td></tr>
+              <tr><th>Reputation</th><td>${data.otx.reputation || 0}</td></tr>
+            </table>
+          `;
+          
+          if (data.otx.pulses && data.otx.pulses.length > 0) {
+            html += '<h4>Pulse Information</h4><ul>';
+            data.otx.pulses.forEach(pulse => {
+              html += `<li>
+                <strong>${pulse.name || 'Unnamed'}</strong> (${pulse.created || 'Date unknown'})
+                <br>Tags: ${pulse.tags?.join(', ') || 'No tags'}
+              </li>`;
+            });
+            html += '</ul>';
+          }
+          
+          otxResults.innerHTML = html;
+        } else {
+          otxResults.innerHTML = `<p>No OTX information found${data.otx?.error ? ': ' + data.otx.error : ''}.</p>`;
+        }
+        
+        
+        displayMessage("Threat intelligence information loaded.");
+      } catch (error) {
+        
+        displayMessage("Failed to load threat intelligence information.", true);
+        
+        abuseResults.innerHTML = '<p>Failed to load AbuseIPDB information.</p>';
+        otxResults.innerHTML = '<p>Failed to load OTX information.</p>';
+      }
+    }
+
+    async function loadSSLCertificate(domain) {
+      displayMessage("Loading SSL certificate information...");
+      
+      const sslDetails = document.getElementById('ssl-details');
+      const sanList = document.getElementById('san-list');
+      
+      sslDetails.innerHTML = '<div class="loading-spinner"></div><p>Loading SSL certificate information...</p>';
+      sanList.innerHTML = '';
+      
+      try {
+        const response = await fetch(`/api/analyze_ssl?domain=${domain}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`SSL certificate error: ${data.error}`, true);
+          sslDetails.innerHTML = `<p>Could not retrieve SSL certificate information: ${data.error}</p>`;
+          return;
+        }
+        
+        let html = `
+          <table class="ssl-table">
+            <tr>
+              <th colspan="2">Certificate Information</th>
+            </tr>
+            <tr><th>Serial Number</th><td>${data.serial_number || 'Unknown'}</td></tr>
+            <tr><th>Version</th><td>${data.version || 'Unknown'}</td></tr>
+            <tr><th>Algorithm</th><td>${data.algorithm || 'Unknown'}</td></tr>
+            <tr><th>Valid From</th><td>${data.not_before || 'Unknown'}</td></tr>
+            <tr><th>Valid Until</th><td>${data.not_after || 'Unknown'}</td></tr>
+          </table>
+          
+          <table class="ssl-table" style="margin-top:20px;">
+            <tr>
+              <th colspan="2">Certificate Subject</th>
+            </tr>
+        `;
+        
+        if (data.subject) {
+          for (const [key, value] of Object.entries(data.subject)) {
+            html += `<tr><th>${key}</th><td>${value}</td></tr>`;
+          }
+        } else {
+          html += '<tr><td colspan="2">No certificate subject information found.</td></tr>';
+        }
+        
+        html += `
+          </table>
+          
+          <table class="ssl-table" style="margin-top:20px;">
+            <tr>
+              <th colspan="2">Certificate Issuer</th>
+            </tr>
+        `;
+        
+        if (data.issuer) {
+          for (const [key, value] of Object.entries(data.issuer)) {
+            html += `<tr><th>${key}</th><td>${value}</td></tr>`;
+          }
+        } else {
+          html += '<tr><td colspan="2">No certificate issuer information found.</td></tr>';
+        }
+        
+        html += '</table>';
+        
+        sslDetails.innerHTML = html;
+        
+        if (data.san && data.san.length > 0) {
+          data.san.forEach(domain => {
+            const li = document.createElement('li');
+            li.textContent = domain;
+            
+            const searchButton = document.createElement('button');
+            searchButton.textContent = 'Search';
+            searchButton.className = 'san-search-button';
+            searchButton.onclick = () => {
+              document.getElementById('ipAddressInput').value = domain;
+              document.getElementById('searchType').value = 'domain';
+              document.getElementById('searchButton').click();
+            };
+            
+            li.appendChild(searchButton);
+            sanList.appendChild(li);
+          });
+        } else {
+          sanList.innerHTML = '<li>No alternative domain names found.</li>';
+        }
+        
+        displayMessage("SSL certificate information loaded.");
+      } catch (error) {
+        
+        displayMessage("Failed to load SSL certificate information.", true);
+        sslDetails.innerHTML = '<p>Failed to load SSL certificate information.</p>';
+      }
+    }
+
+    async function loadDNSRecords(domain) {
+      displayMessage("Loading DNS records...");
+      
+      const aRecords = document.getElementById('a-records');
+      const mxRecords = document.getElementById('mx-records');
+      const nsRecords = document.getElementById('ns-records');
+      const txtRecords = document.getElementById('txt-records');
+      const otherRecords = document.getElementById('other-records');
+      
+      aRecords.innerHTML = '<div class="loading-spinner"></div><p>Loading A records...</p>';
+      mxRecords.innerHTML = '<div class="loading-spinner"></div><p>Loading MX records...</p>';
+      nsRecords.innerHTML = '<div class="loading-spinner"></div><p>Loading NS records...</p>';
+      txtRecords.innerHTML = '<div class="loading-spinner"></div><p>Loading TXT records...</p>';
+      otherRecords.innerHTML = '<div class="loading-spinner"></div><p>Loading other records...</p>';
+      
+      try {
+        const response = await fetch(`/api/dns_records?domain=${domain}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`DNS record error: ${data.error}`, true);
+          aRecords.innerHTML = `<p>Could not retrieve DNS records: ${data.error}</p>`;
+          mxRecords.innerHTML = '';
+          nsRecords.innerHTML = '';
+          txtRecords.innerHTML = '';
+          otherRecords.innerHTML = '';
+          return;
+        }
+        
+        if (data.A && data.A.length > 0) {
+          let html = '<ul class="dns-list">';
+          data.A.forEach(record => {
+            html += `<li>${record} <button class="dns-search-button" onclick="searchIP('${record}')">Search IP</button></li>`;
+          });
+          html += '</ul>';
+          aRecords.innerHTML = html;
+        } else {
+          aRecords.innerHTML = '<p>No A records found.</p>';
+        }
+        
+        if (data.MX && data.MX.length > 0) {
+          let html = '<ul class="dns-list">';
+          data.MX.forEach(record => {
+            html += `<li>${record}</li>`;
+          });
+          html += '</ul>';
+          mxRecords.innerHTML = html;
+        } else {
+          mxRecords.innerHTML = '<p>No MX records found.</p>';
+        }
+        
+        if (data.NS && data.NS.length > 0) {
+          let html = '<ul class="dns-list">';
+          data.NS.forEach(record => {
+            html += `<li>${record} <button class="dns-search-button" onclick="searchDomain('${record}')">Search Domain</button></li>`;
+          });
+          html += '</ul>';
+          nsRecords.innerHTML = html;
+        } else {
+          nsRecords.innerHTML = '<p>No NS records found.</p>';
+        }
+        
+        if (data.TXT && data.TXT.length > 0) {
+          let html = '<ul class="dns-list">';
+          data.TXT.forEach(record => {
+            html += `<li>${record}</li>`;
+          });
+          html += '</ul>';
+          txtRecords.innerHTML = html;
+        } else {
+          txtRecords.innerHTML = '<p>No TXT records found.</p>';
+        }
+        
+        let otherHtml = '';
+        for (const [recordType, records] of Object.entries(data)) {
+          if (!['A', 'MX', 'NS', 'TXT'].includes(recordType) && records.length > 0) {
+            otherHtml += `<h4>${recordType} Records</h4><ul class="dns-list">`;
+            records.forEach(record => {
+              otherHtml += `<li>${record}</li>`;
+            });
+            otherHtml += '</ul>';
+          }
+        }
+        
+        if (otherHtml) {
+          otherRecords.innerHTML = otherHtml;
+        } else {
+          otherRecords.innerHTML = '<p>No other record types found.</p>';
+        }
+        
+        window.searchIP = function(ip) {
+          document.getElementById('ipAddressInput').value = ip;
+          document.getElementById('searchType').value = 'ip';
+          document.getElementById('searchButton').click();
+        };
+        
+        window.searchDomain = function(domain) {
+          document.getElementById('ipAddressInput').value = domain;
+          document.getElementById('searchType').value = 'domain';
+          document.getElementById('searchButton').click();
+        };
+        
+        displayMessage("DNS records loaded.");
+      } catch (error) {
+        
+        displayMessage("Failed to load DNS records.", true);
+        
+        aRecords.innerHTML = '<p>Failed to load DNS records.</p>';
+        mxRecords.innerHTML = '';
+        nsRecords.innerHTML = '';
+        txtRecords.innerHTML = '';
+        otherRecords.innerHTML = '';
+      }
+    }
+
+    async function loadWHOISInfo(target, isIP) {
+      displayMessage("Loading WHOIS information...");
+      
+      const whoisDetails = document.getElementById('whois-details');
+      whoisDetails.innerHTML = '<div class="loading-spinner"></div><p>Loading WHOIS information...</p>';
+      
+      try {
+        const response = await fetch(`/api/whois?target=${target}&type=${isIP ? 'ip' : 'domain'}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`WHOIS error: ${data.error}`, true);
+          whoisDetails.innerHTML = `<p>Could not retrieve WHOIS information: ${data.error}</p>`;
+          return;
+        }
+        
+        let html = '<table class="whois-table">';
+        const priorityFields = ['domain_name', 'registrar', 'whois_server', 'creation_date', 'updated_date', 'expiration_date', 'name_servers', 'status', 'emails', 'org', 'name', 'address', 'city', 'state', 'zipcode', 'country'];
+        
+        priorityFields.forEach(field => {
+          if (data[field]) {
+            let value = data[field];
+            if (Array.isArray(value)) {
+              value = value.join('<br>');
+            }
+            html += `<tr><th>${field.replace(/_/g, ' ')}</th><td>${value}</td></tr>`;
+          }
+        });
+        
+        for (const [key, value] of Object.entries(data)) {
+          if (!priorityFields.includes(key) && value) {
+            let displayValue = value;
+            if (Array.isArray(displayValue)) {
+              displayValue = displayValue.join('<br>');
+            }
+            html += `<tr><th>${key.replace(/_/g, ' ')}</th><td>${displayValue}</td></tr>`;
+          }
+        }
+        
+        html += '</table>';
+        whoisDetails.innerHTML = html;
+        
+        displayMessage("WHOIS information loaded.");
+      } catch (error) {
+        
+        displayMessage("Failed to load WHOIS information.", true);
+        whoisDetails.innerHTML = '<p>Failed to load WHOIS information.</p>';
+      }
+    }
+
+
+
+    async function loadTimeline(target, isIP) {
+      displayMessage("Loading timeline...");
+      
+      const timelineContainer = document.getElementById('timeline-container');
+      timelineContainer.innerHTML = '<div class="loading-spinner"></div><p>Loading timeline...</p>';
+      
+      try {
+        const response = await fetch(`/api/threat_intel?target=${target}&type=${isIP ? 'ip' : 'domain'}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`Timeline error: ${data.error}`, true);
+          timelineContainer.innerHTML = `<p>Could not create timeline: ${data.error}</p>`;
+          return;
+        }
+        
+        const timelineEvents = [];
+        
+        if (data.whois) {
+          if (data.whois.creation_date) {
+            timelineEvents.push({
+              date: new Date(data.whois.creation_date),
+              event: 'Domain Registration',
+              description: `${target} domain was registered.`,
+              source: 'WHOIS'
+            });
+          }
+          
+          if (data.whois.updated_date) {
+            timelineEvents.push({
+              date: new Date(data.whois.updated_date),
+              event: 'Domain Update',
+              description: `${target} domain was updated.`,
+              source: 'WHOIS'
+            });
+          }
+          
+          if (data.whois.expiration_date) {
+            timelineEvents.push({
+              date: new Date(data.whois.expiration_date),
+              event: 'Domain Expiration',
+              description: `${target} domain expiration date.`,
+              source: 'WHOIS'
+            });
+          }
+        }
+        
+        if (data.ssl_certificate) {
+          if (data.ssl_certificate.not_before) {
+            timelineEvents.push({
+              date: new Date(data.ssl_certificate.not_before),
+              event: 'SSL Start',
+              description: `SSL certificate validity start.`,
+              source: 'SSL'
+            });
+          }
+          
+          if (data.ssl_certificate.not_after) {
+            timelineEvents.push({
+              date: new Date(data.ssl_certificate.not_after),
+              event: 'SSL End',
+              description: `SSL certificate validity end.`,
+              source: 'SSL'
+            });
+          }
+        }
+        
+          
+          
+        
+        if (data.otx && data.otx.pulses) {
+          data.otx.pulses.forEach(pulse => {
+            if (pulse.created) {
+              timelineEvents.push({
+                date: new Date(pulse.created),
+                event: 'OTX Pulse',
+                description: `Pulse created on OTX: ${pulse.name}`,
+                source: 'OTX AlienVault'
+              });
+            }
+          });
+        }
+        
+            
+        if (isIP && data.abuseipdb) {
+          if (data.abuseipdb.last_reported) {
+            timelineEvents.push({
+              date: new Date(data.abuseipdb.last_reported),
+              event: 'AbuseIPDB Report',
+              description: `Last reported date on AbuseIPDB.`,
+              source: 'AbuseIPDB'
+            });
+          }
+        }
+        
+        timelineEvents.sort((a, b) => a.date - b.date);
+        
+        if (timelineEvents.length === 0) {
+          timelineContainer.innerHTML = '<p>No date information found for timeline.</p>';
+          return;
+        }
+        
+        const timelineHeight = 500;
+        timelineContainer.style.height = `${timelineHeight}px`;
+        timelineContainer.innerHTML = '';
+        
+        const canvasWidth = timelineContainer.clientWidth;
+        const canvasHeight = timelineHeight;
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        timelineContainer.appendChild(canvas);
+        
+        const ctx = canvas.getContext('2d');
+        const padding = 40;
+        
+        const minDate = timelineEvents[0].date;
+        const maxDate = timelineEvents[timelineEvents.length - 1].date;
+        const timeRange = maxDate.getTime() - minDate.getTime();
+        
+        function drawTimeline() {
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+          
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          
+          ctx.beginPath();
+          ctx.moveTo(padding, canvasHeight / 2);
+          ctx.lineTo(canvasWidth - padding, canvasHeight / 2);
+          ctx.strokeStyle = '#ecf0f1';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          timelineEvents.forEach((event, index) => {
+            const x = padding + (event.date.getTime() - minDate.getTime()) / timeRange * (canvasWidth - 2 * padding);
+            const y = canvasHeight / 2;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            
+            let color;
+            switch (event.source) {
+              case 'WHOIS': color = '#3498db'; break;
+              case 'SSL': color = '#2ecc71'; break;
+              case 'VirusTotal': color = '#e74c3c'; break;
+              case 'OTX AlienVault': color = '#9b59b6'; break;
+              case 'ThreatFox': color = '#f1c40f'; break;
+              case 'AbuseIPDB': color = '#1abc9c'; break;
+              default: color = '#95a5a6';
+            }
+            
+            ctx.fillStyle = color;
+            ctx.fill();
+            
+            ctx.fillStyle = '#ecf0f1';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            const textY = index % 2 === 0 ? y - 30 : y + 45;
+            ctx.fillText(event.event, x, textY);
+            ctx.fillText(formatDate(event.date), x, textY + 15);
+            
+            ctx.font = '10px Arial';
+            ctx.fillStyle = color;
+            ctx.fillText(event.source, x, textY + 28);
+          });
+          
+          const legendX = padding;
+          const legendY = canvasHeight - 30;
+          const sources = ['WHOIS', 'SSL', 'VirusTotal', 'OTX AlienVault', 'ThreatFox', 'AbuseIPDB'];
+          const colors = ['#3498db', '#2ecc71', '#e74c3c', '#9b59b6', '#f1c40f', '#1abc9c'];
+          
+          sources.forEach((source, index) => {
+            const x = legendX + index * 120;
+            
+            ctx.beginPath();
+            ctx.arc(x, legendY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = colors[index];
+            ctx.fill();
+            
+            ctx.fillStyle = '#ecf0f1';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(source, x + 10, legendY + 4);
+          });
+        }
+        
+        function formatDate(date) {
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+        }
+        
+        drawTimeline();
+        
+        canvas.addEventListener('mousemove', (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          
+          timelineEvents.forEach((event, index) => {
+            const x = padding + (event.date.getTime() - minDate.getTime()) / timeRange * (canvasWidth - 2 * padding);
+            const y = canvasHeight / 2;
+            
+            const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - y, 2));
+            if (distance <= 8) {
+              drawTimeline();
+              
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+              ctx.fillRect(mouseX + 10, mouseY - 70, 300, 70);
+              
+              ctx.fillStyle = '#ecf0f1';
+              ctx.font = 'bold 12px Arial';
+              ctx.textAlign = 'left';
+              ctx.fillText(event.event, mouseX + 20, mouseY - 50);
+              
+              ctx.font = '12px Arial';
+              ctx.fillText(event.description, mouseX + 20, mouseY - 30);
+              ctx.fillText(`${formatDate(event.date)} (${event.source})`, mouseX + 20, mouseY - 10);
+            }
+          });
+        });
+        
+        displayMessage("Timeline loaded.");
+      } catch (error) {
+       
+        displayMessage("Failed to load timeline.", true);
+        timelineContainer.innerHTML = '<p>Failed to load timeline.</p>';
+      }
+    }
+
+    function loadTechnologyClusters() {
+      displayMessage("Loading technology clusters...");
+      
+      const techClustersContainer = document.getElementById('tech-clusters-container');
+      techClustersContainer.innerHTML = '<div class="loading-spinner"></div><p>Creating technology clusters...</p>';
+      
+      try {
+        if (!originalData || !originalData.domains || originalData.domains.length === 0) {
+          techClustersContainer.innerHTML = '<p>No data found for technology clusters.</p>';
+          return;
+        }
+        
+        const technologies = {};
+        const domainsByTech = {};
+        
+        originalData.domains.forEach(domainString => {
+          const data = parseDomainData(domainString);
+          const techs = data.technologies.split(',').map(t => t.trim());
+          
+          techs.forEach(tech => {
+            if (tech && tech !== 'None' && tech !== 'undefined') {
+              if (!technologies[tech]) {
+                technologies[tech] = 0;
+                domainsByTech[tech] = [];
+              }
+              
+              technologies[tech]++;
+              domainsByTech[tech].push(data.url);
+            }
+          });
+        });
+        
+        const sortedTechs = Object.entries(technologies)
+          .sort((a, b) => b[1] - a[1])
+          .filter(([tech, count]) => count > 1);
+        
+        if (sortedTechs.length === 0) {
+          techClustersContainer.innerHTML = '<p>Could not create sufficient technology clusters. No technologies found used commonly by at least two domains.</p>';
+          return;
+        }
+        
+        const width = techClustersContainer.clientWidth;
+        const height = 500;
+        
+        techClustersContainer.innerHTML = '';
+        
+        const svg = d3.select(techClustersContainer)
+          .append('svg')
+          .attr('width', width)
+          .attr('height', height);
+        
+        const color = d3.scaleOrdinal(d3.schemeCategory10);
+        
+        const nodes = [];
+        const links = [];
+        
+        sortedTechs.forEach(([tech, count], index) => {
+          nodes.push({
+            id: `tech_${index}`,
+            name: tech,
+            count: count,
+            type: 'technology'
+          });
+          
+          domainsByTech[tech].forEach((domain, domainIndex) => {
+            const domainNodeId = `domain_${tech}_${domainIndex}`;
+            
+            if (!nodes.some(n => n.id === domainNodeId)) {
+              nodes.push({
+                id: domainNodeId,
+                name: domain,
+                type: 'domain'
+              });
+            }
+            
+            links.push({
+              source: `tech_${index}`,
+              target: domainNodeId,
+              value: 1
+            });
+          });
+        });
+        
+        const simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+          .force('charge', d3.forceManyBody().strength(-300))
+          .force('center', d3.forceCenter(width / 2, height / 2))
+          .force('collide', d3.forceCollide(d => d.type === 'technology' ? 50 : 20));
+        
+        const link = svg.append('g')
+          .attr('class', 'links')
+          .selectAll('line')
+          .data(links)
+          .enter()
+          .append('line')
+          .attr('stroke', '#aaa')
+          .attr('stroke-width', 1);
+        
+        const node = svg.append('g')
+          .attr('class', 'nodes')
+          .selectAll('g')
+          .data(nodes)
+          .enter()
+          .append('g')
+          .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+        
+        node.filter(d => d.type === 'technology')
+          .append('circle')
+          .attr('r', d => Math.max(10, Math.min(30, d.count * 3)))
+          .attr('fill', d => color(d.name))
+          .append('title')
+          .text(d => `${d.name}: ${d.count} domains`);
+        
+        node.filter(d => d.type === 'domain')
+          .append('circle')
+          .attr('r', 5)
+          .attr('fill', '#ccc')
+          .append('title')
+          .text(d => d.name);
+        
+        node.filter(d => d.type === 'technology')
+          .append('text')
+          .attr('dx', 12)
+          .attr('dy', '.35em')
+          .text(d => d.name)
+          .style('font-size', '12px')
+          .style('fill', '#fff');
+        
+        simulation.on('tick', () => {
+          link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+          
+          node
+            .attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+        
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+        
+        const techList = document.createElement('div');
+        techList.className = 'tech-list';
+        techList.innerHTML = '<h3>Technology List</h3>';
+        
+        const ul = document.createElement('ul');
+        sortedTechs.forEach(([tech, count]) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="tech-name">${tech}</span> <span class="tech-count">(${count} domains)</span>`;
+          li.style.borderLeft = `4px solid ${color(tech)}`;
+          
+          li.addEventListener('click', () => {
+            node.selectAll('circle')
+              .attr('stroke', null)
+              .attr('stroke-width', 0);
+            
+            node.filter(d => d.type === 'technology' && d.name === tech)
+              .select('circle')
+              .attr('stroke', '#fff')
+              .attr('stroke-width', 2);
+            
+            link.attr('stroke', d => {
+              const source = d.source.name || d.source;
+              return source === tech ? '#fff' : '#aaa';
+            })
+            .attr('stroke-width', d => {
+              const source = d.source.name || d.source;
+              return source === tech ? 2 : 1;
+            });
+          });
+          
+          ul.appendChild(li);
+        });
+        
+        techList.appendChild(ul);
+        techClustersContainer.appendChild(techList);
+        
+        displayMessage("Technology clusters loaded.");
+      } catch (error) {
+        
+        displayMessage("Failed to load technology clusters.", true);
+        techClustersContainer.innerHTML = '<p>Failed to load technology clusters.</p>';
+      }
+    }
+
+    function loadRelationAnalysis() {
+      displayMessage("Loading relationship analysis...");
+      
+      const relationGraphContainer = document.getElementById('relation-graph-container');
+      relationGraphContainer.innerHTML = '<div class="loading-spinner"></div><p>Creating relationship analysis...</p>';
+      
+      try {
+        if (!originalData || (!originalData.domains || originalData.domains.length === 0) && (!originalData.ips || originalData.ips.length === 0)) {
+          relationGraphContainer.innerHTML = '<p>No data found for relationship analysis.</p>';
+          return;
+        }
+        
+        const domains = [];
+        const ips = [];
+        const links = [];
+        
+        if (originalData.domains) {
+          originalData.domains.forEach(domainString => {
+            const data = parseDomainData(domainString);
+            domains.push({
+              id: data.url,
+              type: 'domain',
+              statusCode: data.statusCode,
+              technologies: data.technologies
+            });
+          });
+        }
+        
+        if (originalData.ips) {
+          originalData.ips.forEach(ipString => {
+            const data = parseIPData(ipString);
+            ips.push({
+              id: data.ip,
+              type: 'ip',
+              statusCode: data.statusCode
+            });
+          });
+        }
+        
+        const mainTarget = {
+          id: originalData.target,
+          type: originalData.search_type,
+          isMain: true
+        };
+        
+        const nodes = [mainTarget, ...domains, ...ips];
+        
+        const dnsPromises = domains.map(domain => {
+          return fetch(`/api/dns_records?domain=${domain.id}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) return;
+              
+              if (data.A) {
+                data.A.forEach(ip => {
+                  links.push({
+                    source: domain.id,
+                    target: ip,
+                    type: 'A'
+                  });
+                  
+                  domains.forEach(otherDomain => {
+                    if (otherDomain.id !== domain.id) {
+                      fetch(`/api/dns_records?domain=${otherDomain.id}`)
+                        .then(response => response.json())
+                        .then(otherData => {
+                          if (otherData.error) return;
+                          
+                          if (otherData.A && otherData.A.includes(ip)) {
+                            links.push({
+                              source: domain.id,
+                              target: otherDomain.id,
+                              type: 'shared_ip',
+                              via: ip
+                            });
+                          }
+                        })
+                        .catch(error => console.error("DNS error:", error));
+                    }
+                  });
+                });
+              }
+              
+              if (data.NS) {
+                data.NS.forEach(ns => {
+                  links.push({
+                    source: domain.id,
+                    target: ns,
+                    type: 'NS'
+                  });
+                  
+                  domains.forEach(otherDomain => {
+                    if (otherDomain.id !== domain.id) {
+                      fetch(`/api/dns_records?domain=${otherDomain.id}`)
+                        .then(response => response.json())
+                        .then(otherData => {
+                          if (otherData.error) return;
+                          
+                          if (otherData.NS && otherData.NS.includes(ns)) {
+                            links.push({
+                              source: domain.id,
+                              target: otherDomain.id,
+                              type: 'shared_ns',
+                              via: ns
+                            });
+                          }
+                        })
+                        .catch(error => console.error("DNS error error:", error));
+                    }
+                  });
+                });
+              }
+            })
+            .catch(error => console.error("DNS error error:", error));
+        });
+        
+        Promise.all(dnsPromises.filter(p => p)).then(() => {
+          const sslPromises = domains.map(domain => {
+            return fetch(`/api/analyze_ssl?domain=${domain.id}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data.error) return;
+                
+                if (data.san && data.san.length > 0) {
+                  data.san.forEach(san => {
+                    links.push({
+                      source: domain.id,
+                      target: san,
+                      type: 'SAN'
+                    });
+                    
+                    domains.forEach(otherDomain => {
+                      if (otherDomain.id !== domain.id && otherDomain.id === san) {
+                        links.push({
+                          source: domain.id,
+                          target: otherDomain.id,
+                          type: 'shared_ssl'
+                        });
+                      }
+                    });
+                  });
+                }
+                
+                if (data.issuer && data.issuer.O) {
+                  const issuer = data.issuer.O;
+                  domain.issuer = issuer;
+                  
+                  links.push({
+                    source: domain.id,
+                    target: issuer,
+                    type: 'issuer'
+                  });
+                  
+                  domains.forEach(otherDomain => {
+                    if (otherDomain.id !== domain.id) {
+                      fetch(`/api/analyze_ssl?domain=${otherDomain.id}`)
+                        .then(response => response.json())
+                        .then(otherData => {
+                          if (otherData.error) return;
+                          
+                          if (otherData.issuer && otherData.issuer.O === issuer) {
+                            links.push({
+                              source: domain.id,
+                              target: otherDomain.id,
+                              type: 'shared_issuer',
+                              via: issuer
+                            });
+                          }
+                        })
+                        .catch(error => console.error("SSL error:", error));
+                    }
+                  });
+                }
+              })
+              .catch(error => console.error("SSL error:", error));
+          });
+          
+          Promise.all(sslPromises.filter(p => p)).then(() => {
+            domains.forEach(domain => {
+              if (domain.technologies && domain.technologies !== 'undefined' && domain.technologies !== 'None') {
+                const techs = domain.technologies.split(',').map(t => t.trim());
+                
+                techs.forEach(tech => {
+                  if (tech) {
+                    links.push({
+                      source: domain.id,
+                      target: tech,
+                      type: 'tech'
+                    });
+                    
+                    domains.forEach(otherDomain => {
+                      if (otherDomain.id !== domain.id) {
+                        const otherTechs = otherDomain.technologies ? otherDomain.technologies.split(',').map(t => t.trim()) : [];
+                        
+                        if (otherTechs.includes(tech)) {
+                          links.push({
+                            source: domain.id,
+                            target: otherDomain.id,
+                            type: 'shared_tech',
+                            via: tech
+                          });
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+            
+            const uniqueLinks = [];
+            const linkMap = new Map();
+            
+            links.forEach(link => {
+              const key = `${link.source}_${link.target}_${link.type}`;
+              if (!linkMap.has(key)) {
+                linkMap.set(key, true);
+                uniqueLinks.push(link);
+              }
+            });
+            
+            const allNodes = new Map();
+            
+            allNodes.set(mainTarget.id, mainTarget);
+            
+            uniqueLinks.forEach(link => {
+              if (!allNodes.has(link.source)) {
+                const sourceNode = nodes.find(n => n.id === link.source);
+                if (sourceNode) {
+                  allNodes.set(link.source, sourceNode);
+                } else {
+                  allNodes.set(link.source, {
+                    id: link.source,
+                    type: link.type === 'tech' ? 'technology' : 
+                           link.type === 'issuer' ? 'issuer' : 
+                           link.type === 'NS' ? 'nameserver' : 
+                           'unknown'
+                  });
+                }
+              }
+              
+              if (!allNodes.has(link.target)) {
+                const targetNode = nodes.find(n => n.id === link.target);
+                if (targetNode) {
+                  allNodes.set(link.target, targetNode);
+                } else {
+                  allNodes.set(link.target, {
+                    id: link.target,
+                    type: link.type === 'tech' ? 'technology' : 
+                           link.type === 'issuer' ? 'issuer' : 
+                           link.type === 'NS' ? 'nameserver' : 
+                           'unknown'
+                  });
+                }
+              }
+            });
+            
+            const width = relationGraphContainer.clientWidth;
+            const height = 600;
+            
+            relationGraphContainer.innerHTML = '';
+            
+            const svg = d3.select(relationGraphContainer)
+              .append('svg')
+              .attr('width', width)
+              .attr('height', height);
+            
+            const colorScale = d => {
+              if (d.isMain) return '#f39c12';
+              
+              switch (d.type) {
+                case 'domain': return '#3498db';
+                case 'ip': return '#e74c3c';
+                case 'technology': return '#2ecc71';
+                case 'issuer': return '#9b59b6';
+                case 'nameserver': return '#1abc9c';
+                default: return '#95a5a6';
+              }
+            };
+            
+            const simulation = d3.forceSimulation(Array.from(allNodes.values()))
+              .force('link', d3.forceLink(uniqueLinks).id(d => d.id).distance(100))
+              .force('charge', d3.forceManyBody().strength(-300))
+              .force('center', d3.forceCenter(width / 2, height / 2))
+              .force('collide', d3.forceCollide(d => d.isMain ? 50 : 30));
+            
+            const link = svg.append('g')
+              .attr('class', 'links')
+              .selectAll('line')
+              .data(uniqueLinks)
+              .enter()
+              .append('line')
+              .attr('stroke', d => {
+                switch (d.type) {
+                  case 'A': return '#3498db';
+                  case 'NS': return '#1abc9c';
+                  case 'SAN': return '#9b59b6';
+                  case 'tech': return '#2ecc71';
+                  case 'issuer': return '#e74c3c';
+                  case 'shared_ip': return '#f1c40f';
+                  case 'shared_ns': return '#f39c12';
+                  case 'shared_ssl': return '#8e44ad';
+                  case 'shared_tech': return '#27ae60';
+                  case 'shared_issuer': return '#c0392b';
+                  default: return '#95a5a6';
+                }
+              })
+              .attr('stroke-width', d => d.type.startsWith('shared_') ? 2 : 1)
+              .attr('stroke-dasharray', d => d.type.startsWith('shared_') ? '5,5' : null)
+              .append('title')
+              .text(d => {
+                if (d.type.startsWith('shared_')) {
+                  return `Shared ${d.type.replace('shared_', '')} relationship between ${d.source.id || d.source} and ${d.target.id || d.target}${d.via ? ': ' + d.via : ''}`;
+                } else {
+                  return `${d.source.id || d.source} -> ${d.target.id || d.target} (${d.type})`;
+                }
+              });
+            
+            const node = svg.append('g')
+              .attr('class', 'nodes')
+              .selectAll('g')
+              .data(Array.from(allNodes.values()))
+              .enter()
+              .append('g')
+              .call(d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended));
+            
+            node.append('circle')
+              .attr('r', d => d.isMain ? 15 : 8)
+              .attr('fill', colorScale)
+              .append('title')
+              .text(d => {
+                let info = `${d.id} (${d.type})`;
+                
+                if (d.statusCode) {
+                  info += `\nStatus: ${d.statusCode}`;
+                }
+                
+                if (d.technologies) {
+                  info += `\nTechnologies: ${d.technologies}`;
+                }
+                
+                return info;
+              });
+            
+            node.append('text')
+              .attr('dx', 12)
+              .attr('dy', '.35em')
+              .text(d => {
+                if (d.isMain) return d.id;
+                if (d.type === 'domain' || d.type === 'ip') return d.id;
+                return d.id.length > 15 ? d.id.substring(0, 15) + '...' : d.id;
+              })
+              .style('font-size', d => d.isMain ? '14px' : '10px')
+              .style('fill', '#fff');
+            
+            simulation.on('tick', () => {
+              link
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
+              
+              node
+                .attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+            
+            function dragstarted(event, d) {
+              if (!event.active) simulation.alphaTarget(0.3).restart();
+              d.fx = d.x;
+              d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+              d.fx = event.x;
+              d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+              if (!event.active) simulation.alphaTarget(0);
+              d.fx = null;
+              d.fy = null;
+            }
+            
+            const legend = document.createElement('div');
+            legend.className = 'relation-legend';
+            legend.innerHTML = `
+              <h3>Relationship Types</h3>
+              <ul>
+                <li><span style="background-color: #3498db;"></span> A Record</li>
+                <li><span style="background-color: #1abc9c;"></span> NS Record</li>
+                <li><span style="background-color: #9b59b6;"></span> SSL SAN</li>
+                <li><span style="background-color: #2ecc71;"></span> Technology</li>
+                <li><span style="background-color: #e74c3c;"></span> SSL Issuer</li>
+                <li><span style="background-color: #f1c40f;"></span> Shared IP</li>
+                <li><span style="background-color: #f39c12;"></span> Shared NS</li>
+                <li><span style="background-color: #8e44ad;"></span> Shared SSL</li>
+                <li><span style="background-color: #27ae60;"></span> Shared Technology</li>
+                <li><span style="background-color: #c0392b;"></span> Shared SSL Issuer</li>
+              </ul>
+            `;
+            
+            relationGraphContainer.appendChild(legend);
+            
+            const nodeLegend = document.createElement('div');
+            nodeLegend.className = 'node-legend';
+            nodeLegend.innerHTML = `
+              <h3>Node Types</h3>
+              <ul>
+                <li><span style="background-color: #f39c12;"></span> Main Target</li>
+                <li><span style="background-color: #3498db;"></span> Domain</li>
+                <li><span style="background-color: #e74c3c;"></span> IP Address</li>
+                <li><span style="background-color: #2ecc71;"></span> Technology</li>
+                <li><span style="background-color: #9b59b6;"></span> SSL Issuer</li>
+                <li><span style="background-color: #1abc9c;"></span> Name Server</li>
+                <li><span style="background-color: #95a5a6;"></span> Other</li>
+              </ul>
+            `;
+            
+            relationGraphContainer.appendChild(nodeLegend);
+            
+            displayMessage("Relationship analysis loaded.");
+          });
+        });
+      } catch (error) {
+        
+        displayMessage("Failed to load relationship analysis.", true);
+        relationGraphContainer.innerHTML = '<p>Failed to load relationship analysis.</p>';
+      }
+    }
+
+    function openSandboxUrlModal() {
+      document.getElementById('sandboxUrlModal').style.display = 'block';
+    }
+
+    async function runSandboxAnalysis(url) {
+      displayMessage("Starting sandbox analysis...");
+      
+      const sandboxResults = document.getElementById('sandbox-results');
+      const sandboxScreenshot = document.getElementById('sandbox-screenshot');
+      
+      sandboxResults.innerHTML = '<div class="loading-spinner"></div><p>Performing sandbox analysis...</p>';
+      sandboxScreenshot.innerHTML = '';
+      
+      try {
+        const response = await fetch('/api/sandbox', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ url })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          displayMessage(`Sandbox error: ${data.error}`, true);
+          sandboxResults.innerHTML = `<p>Sandbox analysis error: ${data.error}</p>`;
+          return;
+        }
+        
+        let html = `
+          <h3>Sandbox Analysis Results</h3>
+          <table class="sandbox-table">
+            <tr><th>URL</th><td>${url}</td></tr>
+            <tr><th>Risk Score</th><td>${data.risk_score}/100</td></tr>
+            <tr><th>Analysis Date</th><td>${data.analysis_date}</td></tr>
+          </table>
+          
+          <h4>Behaviors</h4>
+          <ul class="behavior-list">
+        `;
+        
+        data.behaviors.forEach(behavior => {
+          html += `<li>${behavior}</li>`;
+        });
+        
+        html += '</ul>';
+        
+        sandboxResults.innerHTML = html;
+        
+        if (data.screenshot) {
+          sandboxScreenshot.innerHTML = `
+            <h3>Screenshot</h3>
+            <img src="data:image/png;base64,${data.screenshot}" alt="Sandbox Screenshot" class="sandbox-screenshot-img">
+          `;
+        }
+        
+        displayMessage("Sandbox analysis completed.");
+      } catch (error) {
+        displayMessage("Failed to perform sandbox analysis.", true);
+        sandboxResults.innerHTML = '<p>Failed to perform sandbox analysis.</p>';
+      }
+    }
+
+    window.onload = function() {
+      document.getElementById('resultLimit').addEventListener('change', function() {
+        if (this.value === 'all') {
+          displayMessage("You've selected to show all results. This process may take longer and could slow down your browser.", false);
+          setTimeout(() => {
+            displayMessage("");
+          }, 5000);
+        }
+      });
+      document.querySelectorAll('.close-panel-button').forEach(button => {
+  button.addEventListener('click', () => {
+    showPanel('container');
+  });
+});
+      checkAndLoadCachedData();
+
+      const optionsButton = document.getElementById('options-button');
+      const optionsDropdown = document.getElementById('options-dropdown');
+
+      optionsButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (optionsDropdown.classList.contains('show')) {
+          optionsDropdown.classList.remove('show');
+          optionsButton.classList.remove('active');
+        } else {
+          optionsDropdown.classList.add('show');
+          optionsButton.classList.add('active');
+        }
+      });
+      
+      document.getElementById('show-threat-intel').addEventListener('click', () => {
+        if (!currentIP && !currentDomain) {
+          displayMessage("Please search for a target first.", true);
+          return;
+        }
+        loadThreatIntelligence(currentIP || currentDomain, currentTargetType);
+        showPanel('threat-intel-panel');
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      });
+      
+      document.getElementById('show-ssl-analysis').addEventListener('click', () => {
+        if (!currentDomain && currentTargetType !== 'domain') {
+          displayMessage("SSL certificate analysis is only available for domains.", true);
+          return;
+        }
+        loadSSLCertificate(currentDomain);
+        showPanel('ssl-analysis-panel');
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      });
+      
+      document.getElementById('show-dns-records').addEventListener('click', () => {
+        if (!currentDomain && currentTargetType !== 'domain') {
+          displayMessage("DNS record analysis is only available for domains.", true);
+          return;
+        }
+        loadDNSRecords(currentDomain);
+        showPanel('dns-records-panel');
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      });
+      
+      document.getElementById('show-whois').addEventListener('click', () => {
+        if (!currentIP && !currentDomain) {
+          displayMessage("Please search for a target first.", true);
+          return;
+        }
+        loadWHOISInfo(currentIP || currentDomain, currentTargetType === 'ip');
+        showPanel('whois-panel');
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      });
+      
+      
+      document.getElementById('show-timeline').addEventListener('click', () => {
+        if (!currentIP && !currentDomain) {
+          displayMessage("Please search for a target first.", true);
+          return;
+        }
+        loadTimeline(currentIP || currentDomain, currentTargetType === 'ip');
+        showPanel('timeline-panel');
+        optionsDropdown.classList.remove('show');
+        optionsButton.classList.remove('active');
+      });
+      
+    }
+    function filterDataByStatusCode(data, statusCode) {
+      const filteredDomains = data.domains.filter(domainString => {
+        const domainData = parseDomainData(domainString);
+        return domainData.statusCode === statusCode;
+      });
+
+      return {
+        target: data.target,
+        domains: filteredDomains
+      };
+    }
+
+    function createStatusCodeModal() {
+      const statusCodeOptions = document.getElementById('statusCodeOptions');
+      statusCodeOptions.innerHTML = `
+        ${predefinedStatusCodes.map(code => `
+          <div>
+            <input type="radio" id="status_${code}" name="statusCode" value="${code}">
+            <label for="status_${code}">${code}</label>
+          </div>
+        `).join('')}
+        <div>
+          <input type="radio" id="status_all" name="statusCode" value="all">
+          <label for="status_all">All Status Codes</label>
+        </div>
+      `;
+
+      document.getElementById('statusCodeModal').style.display = 'block';
+
+      document.getElementById('applyStatusCode').onclick = () => {
+        const selected = document.querySelector('input[name="statusCode"]:checked');
+        if (selected) {
+          if (selected.value === "all") {
+            filteredStatusCode = null;
+            displayMessage("Filter removed: Showing All Status Codes.");
+          } else {
+            filteredStatusCode = selected.value;
+            displayMessage(`Filter applied: Status Code ${filteredStatusCode}`);
+          }
+
+          const filteredData = filterDataByStatusCode(originalData, filteredStatusCode);
+          nodes = [];
+          links = [];
+          drawGraph();
+          filteredData.domains.forEach(domain => {
+            createGraphIncremental(domain);
+          });
+        }
+        closeStatusCodeModal();
+        document.getElementById('options-dropdown').classList.remove('show');
+        document.getElementById('options-button').classList.remove('active');
+      };
+
+      document.getElementById('cancelStatusCode').onclick = () => {
+        closeStatusCodeModal();
+      };
+    }
+
+    function closeStatusCodeModal() {
+      const modal = document.getElementById('statusCodeModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    document.getElementById('select-status-code').addEventListener('click', () => {
+      if (!originalData) {
+        displayMessage("Please search for a target first.", true);
+        return;
+      }
+      createStatusCodeModal();
+    });
+
+    document.getElementById('export-csv').addEventListener('click', () => {
+      if (!originalData) {
+        displayMessage("Data needed for export.", true);
+        return;
+      }
+
+      let dataToExport = originalData.domains;
+
+      if (filteredStatusCode && filteredStatusCode !== "all") {
+        dataToExport = originalData.domains.filter(domainString => {
+          const domainData = parseDomainData(domainString);
+          return domainData.statusCode === filteredStatusCode;
+        });
+      }
+
+      if (dataToExport.length === 0) {
+        displayMessage("No data for export.", true);
+        return;
+      }
+
+      const csvContent = convertDomainsToCSV(dataToExport);
+      downloadCSV(csvContent, `domains_${currentIP || currentDomain}.csv`);
+      document.getElementById('options-dropdown').classList.remove('show');
+      document.getElementById('options-button').classList.remove('active');
+    });
+
+function convertDomainsToCSV(domains) {
+  const headers = ["#", "Domain", "Status", "Message", "Title"];
+  
+  
+  const rows = domains.map((domainString, index) => {
+    const data = parseDomainData(domainString);
+    
+    
+    let shortenedTitle = data.title || '';
+    if (shortenedTitle.length > 50) {
+      shortenedTitle = shortenedTitle.substring(0, 47) + '...';
+    }
+    
+    return [
+      index + 1, 
+      `"${data.url}"`, 
+      data.statusCode, 
+      `"${data.statusMessage}"`,
+      `"${shortenedTitle}"`
+    ].join(",");
+  });
+  
+  return [headers.join(","), ...rows].join("\n");
+}
+
+    function downloadCSV(csvContent, filename) {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        displayMessage("CSV downloaded successfully.");
+      }
+    }
+
+    document.getElementById('reportButton').addEventListener('click', async () => {
+      if (!originalData) {
+        displayMessage("Data required to generate a report.", true);
+        return;
+      }
+
+      displayMessage("Preparing PDF report, please wait...");
+      
+      const { jsPDF } = window.jspdf;
+      const target = currentIP || currentDomain;
+      const targetType = currentTargetType;
+      
+      const COLORS = {
+        primary: [156, 18, 243],
+        secondary: [243, 156, 18],
+        accent: [18, 243, 156],
+        text: [50, 50, 50],
+        lightText: [100, 100, 100],
+        background: [245, 245, 245],
+        success: [46, 204, 113],
+        warning: [241, 196, 15],
+        danger: [231, 76, 60]
+      };
+
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - 2 * margin;
+      
+      let pageCount = 1;
+      
+      const getCurrentDate = () => {
+        const now = new Date();
+        return now.toLocaleDateString('en-US', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }) + ' ' + now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+
+      const addHeaderAndFooter = (pageNum) => {
+        doc.setDrawColor(...COLORS.primary);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 10, pageWidth - margin, 10);
+        
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.lightText);
+        doc.text("keklick - Threat Intelligence Report", margin, 8);
+        
+        doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
+        doc.text(`Page ${pageNum}`, margin, pageHeight - 5);
+        doc.text(`Report Date: ${getCurrentDate()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+        doc.text(`Target: ${target}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+      };
+
+      const createHeading = (text, y, level = 1) => {
+        const fontSize = level === 1 ? 16 : level === 2 ? 14 : 12;
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...COLORS.primary);
+        
+        if (level === 1) {
+          doc.text(text, margin, y);
+          doc.setDrawColor(...COLORS.primary);
+          doc.setLineWidth(0.5);
+          doc.line(margin, y + 1, margin + doc.getTextWidth(text), y + 1);
+          return y + 8;
+        } else {
+          doc.text(text, margin, y);
+          return y + 6;
+        }
+      };
+
+      const addText = (text, y, options = {}) => {
+        const { 
+          fontSize = 10, 
+          font = 'helvetica', 
+          style = 'normal', 
+          color = COLORS.text,
+          align = 'left',
+          indent = 0
+        } = options;
+        
+        doc.setFontSize(fontSize);
+        doc.setFont(font, style);
+        doc.setTextColor(...color);
+        
+        if (typeof text === 'string') {
+          doc.text(text, margin + indent, y, { align });
+          return y + fontSize * 0.35;
+        } else if (Array.isArray(text)) {
+          let currentY = y;
+          text.forEach(line => {
+            doc.text(line, margin + indent, currentY, { align });
+            currentY += fontSize * 0.35;
+          });
+          return currentY;
+        }
+        return y;
+      };
+
+      const createTable = (headers, rows, startY, options = {}) => {
+        const { 
+          fontSize = 9, 
+          rowHeight = 8, 
+          headerBgColor = COLORS.primary,
+          headerTextColor = [255, 255, 255],
+          borderColor = COLORS.primary,
+          zebra = true,
+          zebraColor = [240, 240, 250],
+          maxWidth = contentWidth
+        } = options;
+        
+        let columnWidths = [];
+        
+        if (options.columnWidths) {
+          columnWidths = options.columnWidths;
+        } else {
+          const colCount = headers.length;
+          const colWidth = maxWidth / colCount;
+          columnWidths = headers.map(() => colWidth);
+        }
+        
+        let y = startY;
+        
+        doc.setFillColor(...headerBgColor);
+        doc.setTextColor(...headerTextColor);
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', 'bold');
+        
+        doc.rect(margin, y, maxWidth, rowHeight, 'F');
+        
+        let x = margin;
+        headers.forEach((header, i) => {
+          doc.text(header, x + 2, y + rowHeight - 2);
+          x += columnWidths[i];
+        });
+        
+        y += rowHeight;
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...COLORS.text);
+        
+        rows.forEach((row, rowIndex) => {
+          if (zebra && rowIndex % 2 === 0) {
+            doc.setFillColor(...zebraColor);
+            doc.rect(margin, y, maxWidth, rowHeight, 'F');
+          }
+          
+          doc.setDrawColor(...borderColor);
+          doc.rect(margin, y, maxWidth, rowHeight);
+          
+          x = margin;
+          row.forEach((cell, colIndex) => {
+            doc.text(String(cell), x + 2, y + rowHeight - 2);
+            
+            if (colIndex < row.length - 1) {
+              doc.line(x + columnWidths[colIndex], y, x + columnWidths[colIndex], y + rowHeight);
+            }
+            
+            x += columnWidths[colIndex];
+          });
+          
+          y += rowHeight;
+          
+          if (y > pageHeight - margin - rowHeight) {
+            doc.addPage();
+            pageCount++;
+            addHeaderAndFooter(pageCount);
+            y = margin + 10;
+          }
+        });
+        
+        return y + 5;
+      };
+
+      const createProgressBar = (value, y, options = {}) => {
+        const { 
+          width = 100, 
+          height = 10,
+          min = 0,
+          max = 100,
+          fillColor = COLORS.primary,
+          backgroundColor = [220, 220, 220],
+          showValue = true
+        } = options;
+        
+        const normalizedValue = Math.min(Math.max(value, min), max);
+        const percentage = (normalizedValue - min) / (max - min);
+        const fillWidth = width * percentage;
+        
+        doc.setFillColor(...backgroundColor);
+        doc.rect(margin, y, width, height, 'F');
+        
+        doc.setFillColor(...fillColor);
+        doc.rect(margin, y, fillWidth, height, 'F');
+        
+        if (showValue) {
+          doc.setFontSize(8);
+          doc.setTextColor(255, 255, 255);
+          doc.text(`${Math.round(normalizedValue)}%`, margin + fillWidth / 2, y + height / 2 + 2, {
+            align: 'center'
+          });
+        }
+        
+        return y + height + 5;
+      };
+      
+      const createCoverPage = () => {
+        doc.setFillColor(...COLORS.primary);
+        doc.rect(0, 0, 30, pageHeight, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.text("KEKLICK", 15, 40, { align: 'center', angle: 90 });
+        
+        doc.setTextColor(...COLORS.primary);
+        doc.setFontSize(28);
+        doc.text("Threat Intelligence Report", pageWidth / 2, 60, { align: 'center' });
+        
+        doc.setFontSize(18);
+        doc.setTextColor(...COLORS.secondary);
+        doc.text(`${targetType === 'ip' ? 'IP Address' : 'Domain'}: ${target}`, pageWidth / 2, 80, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setTextColor(...COLORS.text);
+        doc.text(`Report Date: ${getCurrentDate()}`, pageWidth / 2, 100, { align: 'center' });
+        
+        doc.setFillColor(...COLORS.primary);
+        doc.setGState(new doc.GState({ opacity: 0.1 }));
+        
+        for (let i = 0; i < 5; i++) {
+          const size = 40;
+          const x = pageWidth - 60 - i * 10;
+          const y = pageHeight - 80 + i * 10;
+          doc.circle(x, y, size, 'F');
+        }
+        
+        doc.setGState(new doc.GState({ opacity: 1.0 }));
+        
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.lightText);
+        doc.text("This report was automatically generated.", pageWidth / 2, pageHeight - 20, { align: 'center' });
+        doc.text("keklick © 2024", pageWidth / 2, pageHeight - 15, { align: 'center' });
+      };
+      
+      const createTOC = () => {
+        let y = margin + 10;
+        
+        y = createHeading("TABLE OF CONTENTS", y);
+        y += 10;
+        
+        const sections = [
+          { title: "Executive Summary", page: 3 },
+          { title: "Threat Intelligence Data", page: 4 },
+          { title: "Technology Distribution", page: 5 },
+          { title: "Status Code Statistics", page: 6 },
+          { title: "Visualization", page: 7 },
+          { title: "Domain List", page: 8 }
+        ];
+        
+        sections.forEach(section => {
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...COLORS.text);
+          doc.text(section.title, margin, y);
+          
+          doc.setDrawColor(...COLORS.lightText);
+          doc.setLineDashPattern([1, 1], 0);
+          doc.line(margin + doc.getTextWidth(section.title) + 5, y, pageWidth - margin - 10, y);
+          
+          doc.text(String(section.page), pageWidth - margin, y, { align: 'right' });
+          
+          y += 8;
+        });
+        
+        y += 15;
+        doc.setFontSize(9);
+        doc.setTextColor(...COLORS.lightText);
+        doc.text("This report contains the results of a threat intelligence scan performed by keklick.", 
+                 margin, y, { maxWidth: contentWidth });
+        
+        y += 8;
+        doc.text("The information in this report is limited to the data obtained during the scan and is not a substitute for a complete security assessment.", 
+                 margin, y, { maxWidth: contentWidth });
+      };
+      
+      const createSummaryPage = async () => {
+        let y = margin + 10;
+        
+        y = createHeading("EXECUTIVE SUMMARY", y);
+        y += 10;
+        
+        const basicInfoRows = [
+          ["Target Type", targetType === 'ip' ? "IP Address" : "Domain"],
+          ["Target", target],
+          ["ASN Information", originalData.asn_info || "Unknown"],
+          ["Detected Domains", originalData.domains ? originalData.domains.length : 0],
+          ["Detected IPs", originalData.ips ? originalData.ips.length : 0],
+          ["Scan Date", getCurrentDate()]
+        ];
+        
+        y = createTable(["Information", "Value"], basicInfoRows, y, {
+          columnWidths: [60, contentWidth - 60]
+        });
+        
+        y += 10;
+        
+        let threatData = null;
+        
+        try {
+          const response = await fetch(`/api/threat_intel?target=${target}&type=${targetType}`);
+          threatData = await response.json();
+        } catch (error) {
+          console.error("Could not retrieve threat data:", error);
+        }
+        
+        if (threatData && !threatData.error) {
+          y = createHeading("Threat Summary", y, 2);
+          y += 5;
+          
+          const threatRows = [];
+          
+          if (targetType === 'ip' && threatData.abuseipdb && !threatData.abuseipdb.error) {
+            threatRows.push(["AbuseIPDB Confidence Score", `${threatData.abuseipdb.abuse_score || 0}/100`]);
+          }
+          
+          if (threatData.otx && !threatData.otx.error) {
+            threatRows.push(["OTX Pulse Count", threatData.otx.pulse_count || 0]);
+            threatRows.push(["OTX Reputation", threatData.otx.reputation || 0]);
+          }
+          
+          if (threatRows.length > 0) {
+            y = createTable(["Source", "Value"], threatRows, y, {
+              columnWidths: [80, contentWidth - 80]
+            });
+          } else {
+            y = addText("No threat intelligence data found.", y, { 
+              fontSize: 10, 
+              color: COLORS.lightText 
+            });
+          }
+        }
+        
+        y += 15;
+        
+        let riskScore = 0;
+        
+        if (threatData) {
+          if (targetType === 'ip' && threatData.abuseipdb && !threatData.abuseipdb.error) {
+            riskScore += parseInt(threatData.abuseipdb.abuse_score || 0);
+          }
+          
+          if (threatData.otx && !threatData.otx.error) {
+            riskScore += (parseInt(threatData.otx.pulse_count || 0) * 10);
+          }
+          
+          riskScore = Math.min(Math.round(riskScore), 100);
+        }
+        
+        y = createHeading("Risk Assessment", y, 2);
+        y += 5;
+        
+        let riskCategory = "Low";
+        let riskColor = COLORS.success;
+        
+        if (riskScore > 25 && riskScore <= 60) {
+          riskCategory = "Medium";
+          riskColor = COLORS.warning;
+        } else if (riskScore > 60) {
+          riskCategory = "High";
+          riskColor = COLORS.danger;
+        }
+        
+        y = addText(`Risk Level: ${riskCategory}`, y, { 
+          fontSize: 12, 
+          style: 'bold',
+          color: riskColor
+        });
+        y += 5;
+        
+        y = createProgressBar(riskScore, y, {
+          width: 150,
+          fillColor: riskColor
+        });
+      };
+      
+      const createThreatIntelPage = async () => {
+        let y = margin + 10;
+        
+        y = createHeading("THREAT INTELLIGENCE DATA", y);
+        y += 10;
+        
+        try {
+          const response = await fetch(`/api/threat_intel?target=${target}&type=${targetType}`);
+          const data = await response.json();
+          
+          if (data && !data.error) {
+            if (data.virustotal && !data.virustotal.error) {
+              y = createHeading("VirusTotal", y, 2);
+              y += 5;
+              
+              const vtRows = [
+                ["Reputation", data.virustotal.reputation || "Unknown"],
+                ["Detection Ratio", `${data.virustotal.detection_ratio || '0/0'} (${data.virustotal.detection_percent || 0}%)`],
+                ["Last Analysis", data.virustotal.last_analysis_date || "Unknown"],
+                ["First Seen", data.virustotal.first_seen || "Unknown"],
+                ["Last Seen", data.virustotal.last_seen || "Unknown"]
+              ];
+              
+              y = createTable(["Metric", "Value"], vtRows, y, {
+                columnWidths: [60, contentWidth - 60]
+              });
+              
+              if (data.virustotal.categories) {
+                y += 5;
+                y = addText("Categories:", y, { fontSize: 10, style: 'bold' });
+                
+                const categories = Object.entries(data.virustotal.categories);
+                if (categories.length > 0) {
+                  const categoryRows = categories.map(([provider, category]) => [provider, category]);
+                  y = createTable(["Provider", "Category"], categoryRows, y, {
+                    columnWidths: [80, contentWidth - 80]
+                  });
+                }
+              }
+              
+              y += 10;
+            }
+            
+            if (targetType === 'ip' && data.abuseipdb && !data.abuseipdb.error) {
+              y = createHeading("AbuseIPDB", y, 2);
+              y += 5;
+              
+              const abuseRows = [
+                ["Confidence Score", `${data.abuseipdb.abuse_score || 0}/100`],
+                ["Total Reports", data.abuseipdb.total_reports || 0],
+                ["Last Reported", data.abuseipdb.last_reported || "No reports"],
+                ["Country", `${data.abuseipdb.country || "Unknown"} (${data.abuseipdb.country_code || "N/A"})`],
+                ["ISP", data.abuseipdb.isp || "Unknown"],
+                ["Usage Type", data.abuseipdb.usage_type || "Unknown"],
+                ["Domain", data.abuseipdb.domain || "Unknown"],
+                ["Public IP", data.abuseipdb.is_public ? "Yes" : "No"]
+              ];
+              
+              y = createTable(["Metric", "Value"], abuseRows, y, {
+                columnWidths: [60, contentWidth - 60]
+              });
+              
+              if (data.abuseipdb.abuse_score) {
+                y += 5;
+                y = addText("Confidence Score:", y, { fontSize: 10, style: 'bold' });
+                
+                const score = parseInt(data.abuseipdb.abuse_score);
+                let scoreColor = COLORS.success;
+                
+                if (score > 25 && score <= 60) {
+                  scoreColor = COLORS.warning;
+                } else if (score > 60) {
+                  scoreColor = COLORS.danger;
+                }
+                
+                y = createProgressBar(score, y, {
+                  width: 150,
+                  fillColor: scoreColor
+                });
+              }
+              
+              y += 10;
+            }
+            
+            if (data.otx && !data.otx.error) {
+              y = createHeading("OTX AlienVault", y, 2);
+              y += 5;
+              
+              const otxRows = [
+                ["Pulse Count", data.otx.pulse_count || 0],
+                ["Reputation", data.otx.reputation || 0]
+              ];
+              
+              y = createTable(["Metric", "Value"], otxRows, y, {
+                columnWidths: [60, contentWidth - 60]
+              });
+              
+              if (data.otx.pulses && data.otx.pulses.length > 0) {
+                y += 5;
+                y = addText("Pulse Information:", y, { fontSize: 10, style: 'bold' });
+                
+                const pulseRows = data.otx.pulses.map(pulse => [
+                  pulse.name || "Unnamed",
+                  pulse.created || "Date unknown",
+                  pulse.tags?.join(', ') || "No tags"
+                ]);
+                
+                y = createTable(["Name", "Creation Date", "Tags"], pulseRows, y, {
+                  columnWidths: [80, 60, contentWidth - 140]
+                });
+              }
+              
+              y += 10;
+            }
+            
+            if (data.threatfox && !data.threatfox.error) {
+              y = createHeading("ThreatFox", y, 2);
+              y += 5;
+              
+              if (data.threatfox.status === 'clean') {
+                y = addText(data.threatfox.message || "No threats found in ThreatFox.", y);
+              } else if (data.threatfox.threats && data.threatfox.threats.length > 0) {
+                y = addText(`Number of Threats Found: ${data.threatfox.count || data.threatfox.threats.length}`, y);
+                y += 5;
+                
+                const threatRows = data.threatfox.threats.map(threat => [
+                  threat.threat_type || "Unknown",
+                  threat.malware || "Unknown",
+                  threat.confidence_level || "Unknown",
+                  threat.first_seen || "Unknown",
+                  threat.last_seen || "Unknown"
+                ]);
+                
+                y = createTable(
+                  ["Threat Type", "Malware", "Confidence", "First Seen", "Last Seen"], 
+                  threatRows, 
+                  y,
+                  {
+                    fontSize: 8,
+                    rowHeight: 8
+                  }
+                );
+              }
+            }
+          } else {
+            y = addText("Could not retrieve threat intelligence data.", y, { 
+              fontSize: 12, 
+              color: COLORS.danger 
+            });
+          }
+        } catch (error) {
+          console.error("Threat intelligence report error:", error);
+          y = addText("Could not retrieve threat intelligence data: " + error.message, y, { 
+            fontSize: 12, 
+            color: COLORS.danger 
+          });
+        }
+      };
+      
+      const createTechnologyPage = () => {
+        let y = margin + 10;
+        
+        y = createHeading("TECHNOLOGY DISTRIBUTION", y);
+        y += 10;
+        
+        const technologyCounts = {};
+        
+        if (originalData.domains && originalData.domains.length > 0) {
+          originalData.domains.forEach(domainString => {
+            const data = parseDomainData(domainString);
+            if (data.technologies && data.technologies !== 'undefined') {
+              const techs = data.technologies.split(',').map(t => t.trim());
+              techs.forEach(tech => {
+                if (tech) {
+                  technologyCounts[tech] = (technologyCounts[tech] || 0) + 1;
+                }
+              });
+            }
+          });
+          
+          const sortedTechs = Object.entries(technologyCounts)
+            .sort((a, b) => b[1] - a[1]);
+          
+          if (sortedTechs.length > 0) {
+            const techRows = sortedTechs.slice(0, 10).map(([tech, count]) => {
+              const percentage = Math.round((count / originalData.domains.length) * 100);
+              return [tech, count, `${percentage}%`];
+            });
+            
+            y = createHeading("Most Used Technologies", y, 2);
+            y += 5;
+            
+            y = createTable(
+              ["Technology", "Domain Count", "Percentage"], 
+              techRows, 
+              y,
+              {
+                columnWidths: [100, 50, 30]
+              }
+            );
+            
+            y += 15;
+            
+            const top5 = sortedTechs.slice(0, 5);
+            
+            y = createHeading("Technology Distribution (Top 5)", y, 2);
+            y += 10;
+            
+            const maxCount = Math.max(...top5.map(t => t[1]));
+            
+            top5.forEach(([tech, count]) => {
+              const barWidth = (count / maxCount) * contentWidth * 0.8;
+              
+              doc.setFontSize(9);
+              doc.setTextColor(...COLORS.text);
+              doc.text(tech, margin, y);
+              
+              doc.setFillColor(...COLORS.primary);
+              doc.rect(margin, y + 2, barWidth, 6, 'F');
+              
+              doc.setFontSize(8);
+              doc.setTextColor(...COLORS.primary);
+              doc.text(`${count} domains`, margin + barWidth + 5, y + 6);
+              
+              y += 12;
+            });
+          } else {
+            y = addText("No technologies detected.", y, { 
+              fontSize: 12, 
+              color: COLORS.lightText 
+            });
+          }
+        } else {
+          y = addText("No domain data available for technology analysis.", y, { 
+            fontSize: 12, 
+            color: COLORS.lightText 
+          });
+        }
+      };
+      
+      const createStatusCodePage = () => {
+        let y = margin + 10;
+        
+        y = createHeading("STATUS CODE STATISTICS", y);
+        y += 10;
+        
+        const statusCodeCounts = {};
+        let totalDomains = 0;
+        
+        if (originalData.domains && originalData.domains.length > 0) {
+          totalDomains = originalData.domains.length;
+          
+          originalData.domains.forEach(domainString => {
+            const data = parseDomainData(domainString);
+            statusCodeCounts[data.statusCode] = (statusCodeCounts[data.statusCode] || 0) + 1;
+          });
+          
+          const sortedCodes = Object.entries(statusCodeCounts)
+            .sort((a, b) => b[1] - a[1]);
+          
+          if (sortedCodes.length > 0) {
+            const statusDescriptions = {
+              '200': 'OK - Successful',
+              '301': 'Moved Permanently',
+              '302': 'Found - Temporary Redirect',
+              '304': 'Not Modified',
+              '400': 'Bad Request',
+              '401': 'Unauthorized',
+              '403': 'Forbidden',
+              '404': 'Not Found',
+              '500': 'Internal Server Error',
+              '502': 'Bad Gateway',
+              '503': 'Service Unavailable',
+              '0': 'Connection Failed'
+            };
+            
+            const codeRows = sortedCodes.map(([code, count]) => {
+              const percentage = Math.round((count / totalDomains) * 100);
+              const description = statusDescriptions[code] || 'Unknown Status Code';
+              return [code, description, count, `${percentage}%`];
+            });
+            
+            y = createTable(
+              ["Status Code", "Description", "Domain Count", "Percentage"], 
+              codeRows, 
+              y,
+              {
+                columnWidths: [40, 80, 40, 30]
+              }
+            );
+            
+            y += 20;
+            
+            y = createHeading("Status Code Distribution", y, 2);
+            y += 10;
+            
+            const statusColors = {
+              '200': COLORS.success,
+              '301': COLORS.secondary,
+              '302': COLORS.secondary,
+              '304': COLORS.secondary,
+              '400': COLORS.warning,
+              '401': COLORS.warning,
+              '403': COLORS.warning,
+              '404': COLORS.warning,
+              '500': COLORS.danger,
+              '502': COLORS.danger,
+              '503': COLORS.danger,
+              '0': COLORS.danger
+            };
+            
+            sortedCodes.forEach(([code, count]) => {
+              const barWidth = (count / totalDomains) * contentWidth * 0.8;
+              const percentage = Math.round((count / totalDomains) * 100);
+              
+              doc.setFontSize(9);
+              doc.setTextColor(...COLORS.text);
+              doc.text(`${code} - ${count} domains`, margin, y);
+              
+              doc.setFillColor(...(statusColors[code] || COLORS.primary));
+              doc.rect(margin, y + 2, barWidth, 8, 'F');
+              
+              doc.setFontSize(8);
+              doc.setTextColor(255, 255, 255);
+              doc.text(`${percentage}%`, margin + 5, y + 7);
+              
+              y += 15;
+            });
+          } else {
+            y = addText("No status code data found.", y, { 
+              fontSize: 12, 
+              color: COLORS.lightText 
+            });
+          }
+        } else {
+          y = addText("No domain data available for status code analysis.", y, { 
+            fontSize: 12, 
+            color: COLORS.lightText 
+          });
+        }
+      };
+      
+      const createVisualizationPage = async () => {
+        let y = margin + 10;
+        
+        y = createHeading("VISUALIZATION", y);
+        y += 10;
+        
+        try {
+          const canvas = await html2canvas(document.getElementById('container'), { 
+            scale: 3,
+            useCORS: true
+          });
+          const imgData = canvas.toDataURL('image/png');
+          
+          const imageWidth = contentWidth;
+          const imageHeight = (canvas.height * imageWidth) / canvas.width;
+          
+          if (imageHeight > pageHeight - margin * 2 - 30) {
+            const scaleFactor = (pageHeight - margin * 2 - 30) / imageHeight;
+            doc.addImage(imgData, 'PNG', margin, y, imageWidth * scaleFactor, imageHeight * scaleFactor);
+          } else {
+            doc.addImage(imgData, 'PNG', margin, y, imageWidth, imageHeight);
+          }
+          
+          y += Math.min(imageHeight, pageHeight - margin * 2 - 30) + 10;
+          
+          y = addText("This visualization shows the graphical representation of data collected by keklick about the target.", 
+                     y, { fontSize: 9, color: COLORS.lightText });
+          
+        } catch (error) {
+          console.error("Error adding visualization:", error);
+          y = addText("An error occurred while adding the visualization: " + error.message, y, { 
+            fontSize: 12, 
+            color: COLORS.danger 
+          });
+        }
+      };
+      
+      const createDomainListPage = () => {
+        let y = margin + 10;
+        
+        y = createHeading("DOMAIN LIST", y);
+        y += 10;
+        
+        if (originalData.domains && originalData.domains.length > 0) {
+          const domainCount = originalData.domains.length;
+          const maxDomainsPerPage = 40;
+          
+          y = addText(`Total of ${domainCount} domains detected. ${Math.min(domainCount, maxDomainsPerPage)} are listed below.`, y, { 
+            fontSize: 10,
+            color: COLORS.text
+          });
+          y += 10;
+          
+          const domainRows = [];
+          const displayCount = Math.min(domainCount, maxDomainsPerPage);
+          
+for (let i = 0; i < displayCount; i++) {
+  const data = parseDomainData(originalData.domains[i]);
+  domainRows.push([
+    i + 1,
+    data.url,
+    data.statusCode,
+    data.statusMessage.substring(0, 15),
+    data.title.substring(0, 20) 
+  ]);
+}
+
+y = createTable(
+  ["#", "Domain", "Status", "Message", "Title"], 
+  domainRows, 
+  y,
+  {
+    fontSize: 8,
+    rowHeight: 7,
+    columnWidths: [15, 85, 20, 40, 50] 
+  }
+);
+          
+          if (domainCount > maxDomainsPerPage) {
+            y += 10;
+            y = addText(`Note: A total of ${domainCount} domains were detected, but only the first ${maxDomainsPerPage} are shown. You can export the full list as CSV.`, y, { 
+              fontSize: 9,
+              color: COLORS.lightText
+            });
+          }
+        } else {
+          y = addText("No domain list found.", y, { 
+            fontSize: 12, 
+            color: COLORS.lightText 
+          });
+        }
+      };
+      
+      const createConclusionPage = () => {
+        let y = margin + 10;
+        
+        y = createHeading("CONCLUSION AND RECOMMENDATIONS", y);
+        y += 10;
+        
+        y = addText("This report contains the results of a threat intelligence scan performed for the target IP address or domain.", y, { 
+          fontSize: 11
+        });
+        y += 8;
+        
+        y = createHeading("Recommendations", y, 2);
+        y += 8;
+        
+        const recommendations = [
+          "Regularly monitor and update threat intelligence data.",
+          "Investigate domains with error status codes such as 403, 404, or 500 and fix if necessary.",
+          "Ensure that all technologies used are up-to-date with the latest versions.",
+          "Regularly review your DNS records and check them for security issues.",
+          "Verify that all detected domains are actually owned by you."
+        ];
+        
+        recommendations.forEach((recommendation, index) => {
+          y = addText(`${index + 1}. ${recommendation}`, y, { 
+            fontSize: 10,
+            indent: 5
+          });
+          y += 6;
+        });
+        
+        y += 10;
+        
+        y = addText("Note: This report was automatically generated and is not a substitute for a professional security assessment. For detailed information about security risks, please consult a cybersecurity expert.", y, { 
+          fontSize: 9,
+          color: COLORS.lightText,
+          maxWidth: contentWidth
+        });
+      };
+      
+      try {
+        createCoverPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        createTOC();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        await createSummaryPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        await createThreatIntelPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        createTechnologyPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        createStatusCodePage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        await createVisualizationPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        createDomainListPage();
+        
+        doc.addPage();
+        pageCount++;
+        addHeaderAndFooter(pageCount);
+        createConclusionPage();
+        
+        doc.save(`keklick_report_${target}_${new Date().toISOString().split('T')[0]}.pdf`);
+        displayMessage("Report successfully created and downloaded.");
+      } catch (error) {
+        console.error("PDF creation error:", error);
+        displayMessage("An error occurred while creating the report: " + error.message, true);
+      }
+    });
+
+document.getElementById('night-mode-button').addEventListener('click', () => {
+  document.body.classList.toggle('day-mode');
+  
+  if (document.body.classList.contains('day-mode')) {
+    
+    svg.style("background-color", "#ffffff");
+    svg.select("image").style("display", "none");
+    
+    
+    svg.selectAll(".grid-line").style("opacity", 0);
+    svg.selectAll("line[stroke='#2c2c2c']").style("opacity", 0);
+    
+    const nightModeIcon = document.querySelector('#night-mode-button img');
+    nightModeIcon.src = '/static/img/nm.svg';
+    nightModeIcon.alt = 'Day Mode';
+  } else {
+    
+    svg.style("background-color", "#000000");
+    svg.select("image").style("display", "block");
+    
+    
+    svg.selectAll(".grid-line").style("opacity", 1);
+    svg.selectAll("line[stroke='#2c2c2c']").style("opacity", 1);
+    
+    const nightModeIcon = document.querySelector('#night-mode-button img');
+    nightModeIcon.src = '/static/img/nm1.svg';
+    nightModeIcon.alt = 'Night Mode';
+  }
+});
+
+    document.getElementById('shared-button').addEventListener('click', () => {
+      if (!currentIP && !currentDomain) {
+        displayMessage("Please search for a target first.", true);
+        return;
+      }
+      
+      const shareLink = `${window.location.origin}?target=${encodeURIComponent(currentIP || currentDomain)}&type=${currentTargetType}`;
+      
+      navigator.clipboard.writeText(shareLink).then(() => {
+        displayMessage("Link copied!");
+      }).catch(err => {
+        console.error('Link copy error:', err);
+        displayMessage("Could not copy link.", true);
+      });
+    });
+
+    document.getElementById('fullscreen-button').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Fullscreen error: ${err.message}`);
+          displayMessage("Could not enter fullscreen mode.", true);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+document.getElementById('download-button').addEventListener('click', async () => {
+  const containerElement = document.getElementById('container');
+  
+  
+  const isDayMode = document.body.classList.contains('day-mode');
+  
+  
+  containerElement.style.backgroundColor = isDayMode ? '#ffffff' : '#121212';
+
+  
+  const canvas = await html2canvas(containerElement, { 
+    scale: 2, 
+    useCORS: true, 
+    foreignObjectRendering: true,
+    backgroundColor: isDayMode ? '#ffffff' : '#121212'
+  });
+
+  
+  containerElement.style.backgroundColor = '';
+
+  const pngImg = canvas.toDataURL('image/png');
+
+  const link = document.createElement('a');
+  link.href = pngImg;
+  link.download = `diagram_${currentIP || currentDomain || 'unknown'}.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+      
+  </script>
+</body>
+</html>
