@@ -30,42 +30,56 @@ Keklick is an advanced threat hunting platform designed to discover, map, and vi
 #### Option 1: Using Docker (Recommended)
 
 1. Clone the repository:
-git clone https://github.com/yourusername/keklick.git
+```bash
+git clone https://github.com/0x6rss/keklick.git
 cd keklick
+```
 
 2. Build and run the Docker container:
-docker build -t keklick .
-docker run -p 5000:5000 keklick
+```bash
+-docker build -t keklick .
+-docker run -p 5000:5000 keklick
+```
 
 3. Access the web interface at: http://localhost:5000
 
 #### Option 2: Manual Installation
 
 1. Clone the repository:
-git clone https://github.com/yourusername/keklick.git
+```bash
+git clone https://github.com/0x6rss/keklick.git
 cd kecklick
+```
 
 2. Install Go (version 1.21 or later):
+```bash
 wget https://golang.org/dl/go1.21.0.linux-amd64.tar.gz
 tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
 export PATH=$PATH:/usr/local/go/bin
+```
 
 3. Install httpx:
+```bash
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+```
 
 4. Install HEDnsExtractor:
+```bash
 git clone https://github.com/HuntDownProject/HEDnsExtractor.git
 cd HEDnsExtractor
 make
 cp hednsextractor /usr/local/bin/
 chmod +x /usr/local/bin/hednsextractor
 cd ..
-
+```
 5. Install Python dependencies:
+```bash
 pip install -r requirements.txt
-
+```
 6. Run the application:
+```bash
 python app.py
+```
 
 7. Access the web interface at: http://localhost:5000
 
