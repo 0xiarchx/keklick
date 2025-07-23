@@ -1,11 +1,12 @@
 # Keklick - C2 Infrastructure Hunter & Visualization Tool
-<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/e4e556fb-c81a-4106-a353-3e93bd0045dd" />
+<img width="600" height="600" alt="image" src="https://github.com/user-attachments/assets/e4e556fb-c81a-4106-a353-3e93bd0045dd" />
 
 ## Overview
 
 Keklick is an advanced threat hunting platform designed to discover, map, and visualize command and control (C2) infrastructure. By identifying domains and IPs related to known malicious endpoints, security analysts can uncover complete C2 networks, helping to detect and mitigate malware campaigns and APT operations.
 
 ## Features
+<img width="1913" height="877" alt="image" src="https://github.com/user-attachments/assets/4144735f-ac90-4581-a15d-4d40883b60b7" />
 
 - C2 Infrastructure Discovery - Reveal domains and IPs connected to known malicious endpoints
 - C2 Network Visualization - Map relationships between malicious infrastructure components
