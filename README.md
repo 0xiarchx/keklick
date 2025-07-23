@@ -141,8 +141,8 @@ Kecklick integrates with several external services to enhance C2 hunting:
 ## Acknowledgments
 
 Special thanks to:
-- The ProjectDiscovery team for creating httpx
-- The HuntDownProject team for developing HEDnsExtractor
+- The ProjectDiscovery team for creating httpx (https://github.com/projectdiscovery/httpx)
+- The HuntDownProject team for developing HEDnsExtractor (https://github.com/HuntDownProject/HEDnsExtractor)
 - All the open-source projects and APIs that make Keklick possible
 
 ## License
