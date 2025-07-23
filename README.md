@@ -1,4 +1,4 @@
-# Keklick - C2 Infrastructure Hunter & Visualization Tool
+# Keklick - C2 Hunting, Reporting and Visualization Tool
 <img width="600" height="600" alt="image" src="https://github.com/user-attachments/assets/e4e556fb-c81a-4106-a353-3e93bd0045dd" />
 
 ## Overview
