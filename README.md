@@ -112,7 +112,7 @@ Both tools form the backbone of Keklick's C2 hunting capabilities, enabling secu
 
 ## Integrations
 
-Kecklick integrates with several external services to enhance C2 hunting:
+Keklick integrates with several external services to enhance C2 hunting:
 
 - AbuseIPDB - Check reputation data for suspicious IP addresses
 - AlienVault OTX - Gather threat intelligence on potential C2 infrastructure
